@@ -41,6 +41,27 @@
 </section>
 
 <section class="card">
+    <h2>Vales</h2>
+    <p>Vales são contas fixas e independentes. Atualize o saldo abaixo.</p>
+    <div class="list">
+        {% for account in vale_accounts %}
+            <form method="post" action="/accounts/{{ account.id }}/balance" class="item">
+                <div>
+                    <strong>{{ account.name }}</strong>
+                    <div>Saldo atual: R$ {{ '%.2f' % account.balance }}</div>
+                </div>
+                <label>Novo saldo
+                    <input type="number" step="0.01" name="balance" value="{{ account.balance }}">
+                </label>
+                <button type="submit">Salvar</button>
+            </form>
+        {% else %}
+            <p>Vales serão criados automaticamente.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card">
     <h2>Cartão de crédito</h2>
     <form method="post" action="/card" class="form-grid">
         <label>Nome
@@ -51,6 +72,7 @@
         </label>
         <label>Valor atual da fatura (R$)
             <input type="number" step="0.01" name="invoice" value="{{ card.current_invoice }}" required>
+            <small>Use um valor positivo; ele será considerado débito (negativo) na simulação.</small>
         </label>
         <button type="submit">Salvar dados do cartão</button>
     </form>

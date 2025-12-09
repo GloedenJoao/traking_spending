@@ -59,14 +59,14 @@
         </label>
         <label>Origem
             <select name="source_account_id" required>
-                {% for acc in accounts.values() %}
+                {% for acc in transfer_accounts %}
                     <option value="{{ acc.id }}">{{ acc.name }}</option>
                 {% endfor %}
             </select>
         </label>
         <label>Destino
             <select name="target_account_id" required>
-                {% for acc in accounts.values() %}
+                {% for acc in transfer_accounts %}
                     <option value="{{ acc.id }}">{{ acc.name }}</option>
                 {% endfor %}
             </select>

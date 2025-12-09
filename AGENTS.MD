@@ -13,7 +13,7 @@
 
 ## Modelo de dados
 - Tabelas principais (campos relevantes):
-  - `accounts`: `id` (PK), `name` (str), `type` (str: `checking` ou `cdb`), `balance` (float).
+- `accounts`: `id` (PK), `name` (str), `type` (str: `checking`, `cdb`, `vale_transporte`, `vale_alimentacao`, `vale_refeicao`), `balance` (float).
   - `cards`: `id` (PK), `name` (str), `due_day` (int), `current_invoice` (float).
   - `salaries`: `id` (PK), `amount` (float), `pay_day` (int).
   - `transactions`: `id` (PK), `description` (str), `amount` (float), `date` (date), `target_type` (str: `account` ou `card`), `account_id` (FK), `card_id` (FK).
@@ -22,7 +22,8 @@
 ## Regras de negócio
 - Salário: é creditado na conta corrente no dia configurado; se cair em fim de semana, antecipa para o dia útil anterior.
 - Simulação diária: inicia com os saldos atuais, percorre dia a dia aplicando, em ordem, salário, transações, transferências e pagamento da fatura.
-- Cartão: transações com `target_type=card` somam ao `current_invoice`; no dia de vencimento, o valor da fatura é debitado da conta corrente e a fatura é zerada.
+- Cartão: transações com `target_type=card` ajustam `current_invoice`, que deve ser sempre negativo para representar dívida. No vencimento, debita-se o valor absoluto da fatura da conta corrente e a fatura é zerada.
+- Vales: vales de transporte, alimentação e refeição são contas fixas criadas automaticamente (não podem ser adicionadas/removidas pela UI) e são independentes; participam de transações, mas não de transferências.
 
 ## Manutenção
 - Ao alterar modelos ou regras de cálculo, atualize README.md e este AGENTS.MD.

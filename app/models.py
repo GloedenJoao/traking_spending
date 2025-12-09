@@ -10,7 +10,9 @@ class Account(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    type = Column(String, nullable=False)  # checking or cdb
+    type = Column(
+        String, nullable=False
+    )  # checking, cdb, vale_transporte, vale_alimentacao, vale_refeicao
     balance = Column(Float, default=0.0)
 
     outgoing_transfers = relationship(

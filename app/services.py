@@ -32,6 +32,18 @@ def ensure_defaults(db: Session) -> Tuple[Account, Card, Salary]:
         db.commit()
         db.refresh(salary)
 
+    # Vales são pré-definidos e não podem ser criados via interface
+    default_vales = [
+        ("Vale Transporte", "vale_transporte"),
+        ("Vale Alimentação", "vale_alimentacao"),
+        ("Vale Refeição", "vale_refeicao"),
+    ]
+    for name, type_value in default_vales:
+        exists = db.query(Account).filter_by(type=type_value).first()
+        if not exists:
+            db.add(Account(name=name, type=type_value, balance=0.0))
+            db.commit()
+
     return checking, card, salary
 
 
@@ -120,7 +132,8 @@ def build_simulation(
     future_events: List[dict] = []
 
     balances = {acc.id: acc.balance for acc in accounts.values()}
-    invoice_value = card.current_invoice
+    # Fatura é tratada como valor negativo (débito)
+    invoice_value = -abs(card.current_invoice)
 
     # create event index per day for easier lookup
     event_map: Dict[date, List[dict]] = {}
@@ -175,7 +188,7 @@ def build_simulation(
                 balances[ev["source"]] = balances.get(ev["source"], 0) - ev["amount"]
                 balances[ev["target"]] = balances.get(ev["target"], 0) + ev["amount"]
             elif ev["kind"] == "card_payment":
-                balances[checking.id] = balances.get(checking.id, 0) - invoice_value
+                balances[checking.id] = balances.get(checking.id, 0) - abs(invoice_value)
                 invoice_value = 0
 
         daily_entry = {
@@ -208,7 +221,7 @@ def update_card(db: Session, name: str, due_day: int, invoice: float):
     _, card, _ = ensure_defaults(db)
     card.name = name
     card.due_day = due_day
-    card.current_invoice = invoice
+    card.current_invoice = -abs(invoice)
     db.commit()
 
 

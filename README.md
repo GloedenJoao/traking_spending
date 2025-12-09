@@ -28,11 +28,12 @@ Aplicação web em FastAPI para acompanhar saldos atuais e simular dia a dia o c
 - **Página 1 – Saldos atuais (`/`)**
   - Informe o saldo da conta corrente.
   - Cadastre e edite caixinhas de CDB com seus saldos.
-  - Defina dados do cartão (nome, vencimento, valor atual da fatura).
+  - Atualize saldos dos vales (transporte, alimentação e refeição), que são contas fixas e independentes.
+  - Defina dados do cartão (nome, vencimento, valor atual da fatura – tratado como valor negativo que será debitado no vencimento).
   - Cadastre o salário e o dia do crédito (antecipado para o último dia útil se cair no fim de semana). O salário é creditado na conta corrente.
 - **Página 2 – Simulação (`/simulation`)**
   - Cadastre transações futuras em contas ou no cartão.
-  - Registre transferências entre contas em datas específicas.
+  - Registre transferências entre contas em datas específicas (vales são independentes e não participam de transferências).
   - Ajuste o horizonte em dias para a tabela (padrão 60 dias a partir de hoje).
   - Veja a tabela diária com saldos projetados por conta e valor da fatura. Valores positivos ficam em verde e negativos em vermelho.
   - Consulte a lista de eventos futuros considerados (salário, vencimento de fatura, transações e transferências cadastradas).
@@ -40,7 +41,7 @@ Aplicação web em FastAPI para acompanhar saldos atuais e simular dia a dia o c
 ## Lógica de simulação (resumo)
 - Parte dos saldos atuais cadastrados.
 - Para cada dia no período, aplica em ordem: crédito de salário (com ajuste de dia útil), transações futuras, transferências entre contas e pagamento da fatura na data de vencimento.
-- Transações no cartão aumentam o valor da fatura; no vencimento a fatura é debitada da conta corrente e zerada.
+- Transações no cartão ajustam a fatura, que é mantida como valor negativo (débito). No vencimento a fatura é debitada da conta corrente pelo valor absoluto e zerada.
 
 ## Atualizações
 Sempre que alterar comportamento, rotas ou modelos de dados, atualize este README.md e o arquivo AGENTS.MD para refletir as mudanças.

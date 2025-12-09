@@ -34,12 +34,19 @@ def startup_event():
 def read_home(request: Request, db: Session = Depends(get_session)):
     checking, card, salary = ensure_defaults(db)
     cdb_accounts = db.query(Account).filter_by(type="cdb").order_by(Account.id).all()
+    vale_accounts = (
+        db.query(Account)
+        .filter(Account.type.in_(["vale_transporte", "vale_alimentacao", "vale_refeicao"]))
+        .order_by(Account.id)
+        .all()
+    )
     return templates.TemplateResponse(
         "home.html",
         {
             "request": request,
             "checking": checking,
             "cdb_accounts": cdb_accounts,
+            "vale_accounts": vale_accounts,
             "card": card,
             "salary": salary,
         },
@@ -105,6 +112,9 @@ def view_simulation(
     today = date.today()
     daily_data, accounts, card, future_events = build_simulation(db, today, days)
     checking, _, salary = ensure_defaults(db)
+    transfer_accounts = [
+        acc for acc in accounts.values() if not acc.type.startswith("vale_")
+    ]
     return templates.TemplateResponse(
         "simulation.html",
         {
@@ -116,6 +126,7 @@ def view_simulation(
             "days": days,
             "checking": checking,
             "salary": salary,
+            "transfer_accounts": transfer_accounts,
         },
     )
 
