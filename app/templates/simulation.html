@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card">
+    <h2>Simulação de transações</h2>
+    <form method="get" action="/simulation" class="form-inline">
+        <label>Quantidade de dias
+            <input type="number" name="days" value="{{ days }}" min="1" max="365">
+        </label>
+        <button type="submit">Atualizar tabela</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Registrar transação futura</h3>
+    <form method="post" action="/transactions" class="form-grid">
+        <label>Descrição
+            <input type="text" name="description" required>
+        </label>
+        <label>Valor (use negativo para débitos)
+            <input type="number" step="0.01" name="amount" required>
+        </label>
+        <label>Data
+            <input type="date" name="date_value" required>
+        </label>
+        <label>Destino
+            <select name="target_type" required id="target-type">
+                <option value="account">Conta</option>
+                <option value="card">Cartão</option>
+            </select>
+        </label>
+        <label>Conta vinculada
+            <select name="account_id">
+                <option value="">Selecione</option>
+                {% for acc in accounts.values() %}
+                    <option value="{{ acc.id }}">{{ acc.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Cartão vinculado
+            <select name="card_id">
+                <option value="{{ card.id }}">{{ card.name }}</option>
+            </select>
+        </label>
+        <button type="submit">Salvar transação</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Transferir entre contas</h3>
+    <form method="post" action="/transfers" class="form-grid">
+        <label>Descrição
+            <input type="text" name="description" required>
+        </label>
+        <label>Valor
+            <input type="number" step="0.01" name="amount" required>
+        </label>
+        <label>Data
+            <input type="date" name="date_value" required>
+        </label>
+        <label>Origem
+            <select name="source_account_id" required>
+                {% for acc in accounts.values() %}
+                    <option value="{{ acc.id }}">{{ acc.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Destino
+            <select name="target_account_id" required>
+                {% for acc in accounts.values() %}
+                    <option value="{{ acc.id }}">{{ acc.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Transferir</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Tabela diária</h3>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>Data</th>
+                {% for acc in accounts.values() %}
+                    <th>{{ acc.name }}</th>
+                {% endfor %}
+                <th>Fatura do cartão</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in daily_data %}
+                <tr>
+                    <td>{{ row.date }}</td>
+                    {% for acc in accounts.values() %}
+                        {% set value = row.accounts[acc.id] %}
+                        <td class="{{ 'positive' if value >= 0 else 'negative' }}">R$ {{ '%.2f' % value }}</td>
+                    {% endfor %}
+                    <td class="{{ 'positive' if row.invoice >= 0 else 'negative' }}">R$ {{ '%.2f' % row.invoice }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card">
+    <h3>Eventos futuros considerados</h3>
+    <ul class="events">
+        <li>Salário padrão: R$ {{ '%.2f' % salary.amount }} no dia {{ salary.pay_day }} (antecipado se cair em fim de semana)</li>
+        <li>Fatura do cartão: vencimento no dia {{ card.due_day }}</li>
+        {% for ev in future_events %}
+            <li>{{ ev.date }} — {{ ev.description }}{% if ev.amount is not none %} (R$ {{ '%.2f' % ev.amount }}){% endif %}</li>
+        {% else %}
+            <li>Nenhum evento adicional cadastrado.</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}

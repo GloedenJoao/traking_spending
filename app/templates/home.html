@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card">
+    <h2>Conta Corrente</h2>
+    <form method="post" action="/accounts/checking" class="form-grid">
+        <label>Saldo atual (R$)
+            <input type="number" step="0.01" name="balance" value="{{ checking.balance }}" required>
+        </label>
+        <button type="submit">Atualizar</button>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Caixinhas de CDB</h2>
+    <form method="post" action="/accounts" class="form-grid">
+        <label>Nome da caixinha
+            <input type="text" name="name" required>
+        </label>
+        <label>Saldo (R$)
+            <input type="number" step="0.01" name="balance" value="0">
+        </label>
+        <button type="submit">Adicionar</button>
+    </form>
+
+    <div class="list">
+        {% for account in cdb_accounts %}
+            <form method="post" action="/accounts/{{ account.id }}/balance" class="item">
+                <div>
+                    <strong>{{ account.name }}</strong>
+                    <div>Saldo atual: R$ {{ '%.2f' % account.balance }}</div>
+                </div>
+                <label>Novo saldo
+                    <input type="number" step="0.01" name="balance" value="{{ account.balance }}">
+                </label>
+                <button type="submit">Salvar</button>
+            </form>
+        {% else %}
+            <p>Nenhuma caixinha cadastrada.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card">
+    <h2>Cartão de crédito</h2>
+    <form method="post" action="/card" class="form-grid">
+        <label>Nome
+            <input type="text" name="name" value="{{ card.name }}" required>
+        </label>
+        <label>Dia de vencimento
+            <input type="number" name="due_day" value="{{ card.due_day }}" min="1" max="31" required>
+        </label>
+        <label>Valor atual da fatura (R$)
+            <input type="number" step="0.01" name="invoice" value="{{ card.current_invoice }}" required>
+        </label>
+        <button type="submit">Salvar dados do cartão</button>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Salário</h2>
+    <form method="post" action="/salary" class="form-grid">
+        <label>Valor do salário (R$)
+            <input type="number" step="0.01" name="amount" value="{{ salary.amount }}" required>
+        </label>
+        <label>Dia do crédito
+            <input type="number" name="pay_day" min="1" max="31" value="{{ salary.pay_day }}" required>
+        </label>
+        <button type="submit">Salvar salário</button>
+    </form>
+</section>
+{% endblock %}
