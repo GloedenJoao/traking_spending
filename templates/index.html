@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Saldo Atual</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Acompanhamento de Gastos</h1>
+      <p class="muted">Página 1 – cadastre saldos e dados fixos</p>
+    </div>
+    <nav>
+      <a href="/" class="active">Página 1</a>
+      <a href="/simulate">Página 2</a>
+    </nav>
+  </header>
+  <div class="container">
+    <div class="grid two">
+      <div class="card">
+        <div class="section-title">
+          <h3>Conta Corrente</h3>
+          <span class="badge">Saldo atual</span>
+        </div>
+        <form method="post" action="/account/corrente" class="grid">
+          <label>Saldo</label>
+          <input type="number" step="0.01" name="balance" value="{{ corrente.balance if corrente else 0 }}" required>
+          <button type="submit">Salvar conta corrente</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <h3>Caixinhas de CDB</h3>
+          <span class="badge">Crie e edite</span>
+        </div>
+        <form method="post" action="/account/caixinha" class="grid">
+          <label>Nome</label>
+          <input type="text" name="name" placeholder="Ex: Viagem" required>
+          <label>Saldo</label>
+          <input type="number" step="0.01" name="balance" value="0">
+          <button type="submit">Adicionar caixinha</button>
+        </form>
+        {% if caixinhas %}
+        <h4 class="muted" style="margin-top:12px;">Editar existentes</h4>
+        {% for acc in caixinhas %}
+        <form method="post" action="/account/caixinha/{{ acc.id }}" class="form-row">
+          <div>
+            <label>Nome</label>
+            <input type="text" name="name" value="{{ acc.name }}" required>
+          </div>
+          <div>
+            <label>Saldo</label>
+            <input type="number" step="0.01" name="balance" value="{{ acc.balance }}" required>
+          </div>
+          <div style="align-self:end;">
+            <button type="submit">Salvar</button>
+          </div>
+        </form>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="grid two">
+      <div class="card">
+        <div class="section-title">
+          <h3>Cartão de Crédito</h3>
+          <span class="badge">Fatura aberta</span>
+        </div>
+        <form method="post" action="/credit-card" class="grid">
+          <label>Nome</label>
+          <input type="text" name="name" value="{{ card.name }}" placeholder="Cartão de Crédito">
+          <label>Dia de vencimento</label>
+          <input type="number" name="due_day" min="1" max="28" value="{{ card.due_day }}">
+          <label>Valor atual da fatura</label>
+          <input type="number" step="0.01" name="open_amount" value="{{ card.open_amount }}">
+          <button type="submit">Salvar cartão</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <h3>Salário</h3>
+          <span class="badge">Entrada padrão na conta corrente</span>
+        </div>
+        <form method="post" action="/salary" class="grid">
+          <label>Valor</label>
+          <input type="number" step="0.01" name="amount" value="{{ salary.amount }}" required>
+          <label>Dia do mês</label>
+          <input type="number" name="payday" min="1" max="28" value="{{ salary.payday }}" required>
+          <p class="muted">Se cair em final de semana, usamos o dia útil anterior.</p>
+          <button type="submit">Salvar salário</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        <h3>Vales</h3>
+        <span class="badge">Crédito no penúltimo dia útil</span>
+      </div>
+      <p class="muted">Valores fixos: Vale Refeição R$ 1236,40 | Vale Alimentação R$ 974,16. Saldos são isolados.</p>
+      <div class="grid two">
+        {% for vale in vales %}
+        <form method="post" action="/vales/{{ vale.vale_type }}" class="grid">
+          <label>{{ 'Vale Refeição' if vale.vale_type == 'vale_refeicao' else 'Vale Alimentação' }}</label>
+          <input type="number" step="0.01" name="balance" value="{{ vale.balance }}">
+          <button type="submit">Atualizar saldo</button>
+        </form>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
