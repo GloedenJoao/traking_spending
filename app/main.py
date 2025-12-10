@@ -57,14 +57,14 @@ async def update_corrente(balance: float = Form(...), db: Session = Depends(get_
     if corrente:
         corrente.balance = balance
         db.commit()
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/?tab=config", status_code=303)
 
 
 @app.post("/account/caixinha")
 async def add_caixinha(name: str = Form(...), balance: float = Form(0), db: Session = Depends(get_db)):
     db.add(Account(name=name, type="caixinha", balance=balance))
     db.commit()
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/?tab=config", status_code=303)
 
 
 @app.post("/account/caixinha/{account_id}")
@@ -74,7 +74,7 @@ async def edit_caixinha(account_id: int, name: str = Form(...), balance: float =
         acc.name = name
         acc.balance = balance
         db.commit()
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/?tab=config", status_code=303)
 
 
 @app.post("/credit-card")
@@ -89,7 +89,7 @@ async def update_card(
     card.due_day = due_day
     card.open_amount = -abs(open_amount)
     db.commit()
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/?tab=config", status_code=303)
 
 
 @app.post("/salary")
@@ -98,7 +98,7 @@ async def update_salary(amount: float = Form(...), payday: int = Form(...), db: 
     salary.amount = amount
     salary.payday = payday
     db.commit()
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/?tab=config", status_code=303)
 
 
 @app.get("/simulate")
@@ -203,7 +203,17 @@ async def update_vale(vale_type: str, balance: float = Form(...), db: Session = 
     if vale:
         vale.balance = balance
         db.commit()
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/?tab=config", status_code=303)
+
+
+@app.get("/dashboard")
+async def dashboard(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+        },
+    )
 
 
 @app.post("/simulate/days")

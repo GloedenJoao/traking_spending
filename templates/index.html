@@ -15,6 +15,7 @@
         <button class="chip active" data-tab-target="painel">Painel financeiro</button>
         <button class="chip" data-tab-target="config">Atualizar valores</button>
         <a href="/simulate" class="chip ghost">Simulação e eventos</a>
+        <a href="/dashboard" class="chip ghost">Dashboard</a>
       </div>
     </div>
     <div class="hero-card">
@@ -214,13 +215,37 @@
     const tabPanels = document.querySelectorAll('.tab-panel');
     const revealButtons = document.querySelectorAll('.reveal-btn');
 
+    function setTab(target, persist = true) {
+      const tabId = `tab-${target}`;
+      tabButtons.forEach((b) => {
+        const isActive = b.getAttribute('data-tab-target') === target;
+        b.classList.toggle('active', isActive);
+      });
+      tabPanels.forEach((panel) => {
+        panel.classList.toggle('active', panel.id === tabId);
+      });
+      if (persist) {
+        localStorage.setItem('home-tab', target);
+      }
+    }
+
     tabButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
         const target = btn.getAttribute('data-tab-target');
-        tabButtons.forEach((b) => b.classList.toggle('active', b === btn));
-        tabPanels.forEach((panel) => panel.classList.toggle('active', panel.id === `tab-${target}`));
+        setTab(target);
       });
     });
+
+    const params = new URLSearchParams(window.location.search);
+    const queryTab = params.get('tab');
+    const savedTab = localStorage.getItem('home-tab');
+    const initialTab = queryTab || savedTab || 'painel';
+    setTab(initialTab, false);
+
+    const hasActiveTab = Array.from(tabButtons).some((b) => b.classList.contains('active'));
+    if (!hasActiveTab) {
+      setTab('painel', false);
+    }
 
     revealButtons.forEach((btn) => {
       const target = document.getElementById(btn.dataset.target);
