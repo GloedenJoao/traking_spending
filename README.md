@@ -5,6 +5,7 @@ Aplicação web em Python/FastAPI para acompanhar gastos do mês e simular saldo
 ## Stack e organização
 - **Backend**: FastAPI com templates Jinja2 (`app/main.py`), regras financeiras em `app/simulation.py` e utilidades em `app/utils.py`.
 - **Persistência**: SQLite (`app/db.py`) via SQLAlchemy; o arquivo `data.db` é criado automaticamente na raiz.
+- **Eventos futuros**: tabela `future_events` consolida salário, créditos de vale e pagamento da fatura para a simulação.
 - **Front-end**: HTML em `templates/` e estilos/JS em `static/`.
 - **Ambiente**: Python 3.10+ com Uvicorn para desenvolvimento.
 

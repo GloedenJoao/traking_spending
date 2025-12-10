@@ -18,6 +18,7 @@ Estas diretrizes cobrem todo o repositório. Mantenha README.md, AGENTS.MD e req
 - `vale_balances(id, vale_type[vale_refeicao|vale_alimentacao], balance)`
 - `transactions(id, description, amount, date, target_type[account|credit_card|vale_refeicao|vale_alimentacao], account_id)`
 - `transfers(id, description, amount, date, from_account_id, to_account_id)`
+- `future_events(id, date, description, amount, target, source)`
 
 ## Regras de negócio resumidas
 - Salário cai no dia informado ou no dia útil anterior (sábado/domingo antecipam para a sexta-feira anterior).

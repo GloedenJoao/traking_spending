@@ -1,7 +1,15 @@
 from datetime import date, timedelta
 from typing import Dict, List, Tuple
 
-from .models import Account, CreditCard, Salary, Transaction, Transfer, ValeBalance
+from .models import (
+    Account,
+    CreditCard,
+    FutureEvent,
+    Salary,
+    Transaction,
+    Transfer,
+    ValeBalance,
+)
 from .utils import adjust_to_previous_business_day, penultimate_business_day, daterange
 
 VALE_REFEICAO_VALUE = 1236.40
@@ -24,44 +32,73 @@ def ensure_defaults(db_session):
     db_session.commit()
 
 
-def build_monthly_events(
-    start_date: date, days: int, salary: Salary, credit_card: CreditCard
-) -> Dict[date, List[Tuple[str, float, str]]]:
-    events: Dict[date, List[Tuple[str, float, str]]] = {}
+def sync_default_events(
+    db_session, start_date: date, days: int, salary: Salary, credit_card: CreditCard
+):
     end_date = start_date + timedelta(days=days)
 
+    db_session.query(FutureEvent).filter(
+        FutureEvent.source == "default",
+        FutureEvent.date >= start_date,
+        FutureEvent.date <= end_date,
+    ).delete()
+
+    events: List[FutureEvent] = []
     current = start_date.replace(day=1)
     while current <= end_date:
         salary_date = adjust_to_previous_business_day(
             date(current.year, current.month, salary.payday)
         )
         if start_date <= salary_date <= end_date:
-            events.setdefault(salary_date, []).append(
-                ("Salário", salary.amount, "account:corrente")
+            events.append(
+                FutureEvent(
+                    date=salary_date,
+                    description="Salário",
+                    amount=salary.amount,
+                    target="account:corrente",
+                )
             )
 
         penultimate = penultimate_business_day(current.year, current.month)
         if start_date <= penultimate <= end_date:
-            events.setdefault(penultimate, []).append(
-                ("Crédito Vale Refeição", VALE_REFEICAO_VALUE, "vale:vale_refeicao")
+            events.append(
+                FutureEvent(
+                    date=penultimate,
+                    description="Crédito Vale Refeição",
+                    amount=VALE_REFEICAO_VALUE,
+                    target="vale:vale_refeicao",
+                )
             )
-            events[penultimate].append(
-                ("Crédito Vale Alimentação", VALE_ALIMENTACAO_VALUE, "vale:vale_alimentacao")
+            events.append(
+                FutureEvent(
+                    date=penultimate,
+                    description="Crédito Vale Alimentação",
+                    amount=VALE_ALIMENTACAO_VALUE,
+                    target="vale:vale_alimentacao",
+                )
             )
 
         due_day = adjust_to_previous_business_day(
             date(current.year, current.month, credit_card.due_day)
         )
         if start_date <= due_day <= end_date:
-            events.setdefault(due_day, []).append(
-                ("Pagamento fatura", -1.0, "credit_card:pay")
+            events.append(
+                FutureEvent(
+                    date=due_day,
+                    description="Pagamento fatura",
+                    amount=-1.0,
+                    target="credit_card:pay",
+                )
             )
 
         if current.month == 12:
             current = date(current.year + 1, 1, 1)
         else:
             current = date(current.year, current.month + 1, 1)
-    return events
+
+    if events:
+        db_session.add_all(events)
+    db_session.commit()
 
 
 def simulate(db_session, start_date: date, days: int):
@@ -78,7 +115,19 @@ def simulate(db_session, start_date: date, days: int):
     }
     card_balance = -abs(credit_card.open_amount) if credit_card else 0.0
 
-    monthly_events = build_monthly_events(start_date, days, salary, credit_card)
+    sync_default_events(db_session, start_date, days, salary, credit_card)
+
+    end_date = start_date + timedelta(days=days)
+    default_events = (
+        db_session.query(FutureEvent)
+        .filter(FutureEvent.date >= start_date, FutureEvent.date <= end_date)
+        .order_by(FutureEvent.date, FutureEvent.id)
+        .all()
+    )
+
+    events_by_day: Dict[date, List[FutureEvent]] = {}
+    for evt in default_events:
+        events_by_day.setdefault(evt.date, []).append(evt)
 
     transactions = db_session.query(Transaction).all()
     transfers = db_session.query(Transfer).all()
@@ -87,16 +136,16 @@ def simulate(db_session, start_date: date, days: int):
     event_log: List[Tuple[date, str, float, str]] = []
 
     for day in daterange(start_date, days):
-        for label, amount, target in monthly_events.get(day, []):
-            actual_amount = amount
-            if target == "account:corrente":
+        for evt in events_by_day.get(day, []):
+            actual_amount = evt.amount
+            if evt.target == "account:corrente":
                 corrente = next((acc for acc in accounts if acc.type == "corrente"), None)
                 if corrente:
-                    account_balances[corrente.id] += amount
-            elif target.startswith("vale:"):
-                vale_key = target.split(":")[1]
-                vale_balances[vale_key] += amount
-            elif target == "credit_card:pay":
+                    account_balances[corrente.id] += evt.amount
+            elif evt.target.startswith("vale:"):
+                vale_key = evt.target.split(":")[1]
+                vale_balances[vale_key] += evt.amount
+            elif evt.target == "credit_card:pay":
                 corrente = next((acc for acc in accounts if acc.type == "corrente"), None)
                 if corrente and card_balance != 0:
                     payment = abs(card_balance)
@@ -105,7 +154,7 @@ def simulate(db_session, start_date: date, days: int):
                     card_balance = 0.0
                 else:
                     actual_amount = 0.0
-            event_log.append((day, label, actual_amount, target))
+            event_log.append((day, evt.description, actual_amount, evt.target))
 
         for txn in [t for t in transactions if t.date == day]:
             if txn.target_type == "account" and txn.account_id:
