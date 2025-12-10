@@ -198,7 +198,7 @@
             <p class="eyebrow">Variação percentual</p>
             <h3>Total (sem vales)</h3>
           </div>
-          <span class="muted">Diferença diária vs fim e vs início da simulação</span>
+          <span class="muted">Diferença diária vs início da simulação</span>
         </div>
         <div class="chart-container">
           <canvas id="percentChanges"></canvas>
@@ -265,7 +265,6 @@
           borderWidth: 2,
           pointRadius: 2,
           fill: false,
-          stack: 'total',
         },
       ];
 
@@ -279,7 +278,6 @@
             borderColor: pickColor(idx),
             backgroundColor: pickColor(idx) + '33',
             tension: 0.35,
-            stack: 'accounts',
           });
         });
 
@@ -288,16 +286,6 @@
 
     function buildPercentDatasets() {
       return [
-        {
-          label: 'Total vs fim',
-          data: chartData.total.changes,
-          borderColor: '#f59e0b',
-          backgroundColor: '#f59e0b55',
-          tension: 0.3,
-          borderWidth: 2,
-          pointRadius: 3,
-          fill: false,
-        },
         {
           label: 'Total vs início',
           data: chartData.total.start_changes,
@@ -323,7 +311,6 @@
           borderWidth: 2,
           pointRadius: 2,
           fill: false,
-          stack: 'vale_total',
         },
       ];
 
@@ -335,7 +322,6 @@
           borderColor: pickColor(idx + 2),
           backgroundColor: pickColor(idx + 2) + '33',
           tension: 0.35,
-          stack: 'vales',
         });
       });
 
@@ -343,7 +329,7 @@
     }
 
     function buildValePercentDatasets() {
-      return [
+      const datasets = [
         {
           label: 'Vales vs fim',
           data: chartData.vales.total.changes,
@@ -366,6 +352,34 @@
           fill: false,
         }
       ];
+
+      chartData.vales.series.forEach((vale, idx) => {
+        const color = pickColor(idx + 1);
+        datasets.push({
+          label: `${vale.name} vs fim`,
+          data: vale.changes,
+          borderColor: color,
+          backgroundColor: color + '55',
+          tension: 0.3,
+          borderWidth: 1.5,
+          pointRadius: 3,
+          fill: false,
+        });
+
+        datasets.push({
+          label: `${vale.name} vs início`,
+          data: vale.start_changes,
+          borderColor: color,
+          backgroundColor: color + '33',
+          tension: 0.3,
+          borderWidth: 1.5,
+          pointRadius: 3,
+          borderDash: [6, 4],
+          fill: false,
+        });
+      });
+
+      return datasets;
     }
 
     const accountChart = new Chart(accountCtx, {
@@ -390,9 +404,10 @@
           legend: { position: 'bottom' },
         },
         scales: {
-          x: { stacked: true },
+          x: { stacked: false },
           y: {
-            stacked: true,
+            stacked: false,
+            beginAtZero: true,
             ticks: {
               callback: (value) => formatBRL(value),
             },
@@ -459,9 +474,10 @@
           legend: { position: 'bottom' },
         },
         scales: {
-          x: { stacked: true },
+          x: { stacked: false },
           y: {
-            stacked: true,
+            stacked: false,
+            beginAtZero: true,
             ticks: {
               callback: (value) => formatBRL(value),
             },
