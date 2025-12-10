@@ -25,6 +25,13 @@ Aplicação web em Python/FastAPI para acompanhar gastos do mês e simular saldo
    ```
 4. Acesse [http://localhost:8000](http://localhost:8000). O banco SQLite é criado automaticamente na primeira execução com valores iniciais.
 
+## Deploy no Render
+- Faça push do repositório com o arquivo `render.yaml` presente na raiz.
+- No painel do Render, crie um novo **Web Service** apontando para este repositório e confirme que a stack é **Python**.
+- O Render instalará as dependências com `pip install -r requirements.txt` e iniciará o servidor com `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+- A variável `PYTHON_VERSION` é definida como `3.10` no `render.yaml` para alinhar o ambiente à versão usada localmente.
+- Como o banco SQLite é efêmero no Render, os dados são reiniciados a cada deploy; use um banco externo se precisar de persistência.
+
 ## Fluxo funcional
 - **Página inicial (/**):
   - Configure saldo da conta corrente e crie/edite caixinhas de CDB.
