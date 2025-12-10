@@ -226,7 +226,7 @@
             <p class="eyebrow">Variação percentual</p>
             <h3>Total de vales</h3>
           </div>
-          <span class="muted">Diferença diária vs fim e vs início da simulação</span>
+          <span class="muted">Diferença diária vs início da simulação</span>
         </div>
         <div class="chart-container">
           <canvas id="valePercentChanges"></canvas>
@@ -331,16 +331,6 @@
     function buildValePercentDatasets() {
       const datasets = [
         {
-          label: 'Vales vs fim',
-          data: chartData.vales.total.changes,
-          borderColor: '#10b981',
-          backgroundColor: '#10b98155',
-          tension: 0.3,
-          borderWidth: 2,
-          pointRadius: 3,
-          fill: false,
-        },
-        {
           label: 'Vales vs início',
           data: chartData.vales.total.start_changes,
           borderColor: '#0ea5e9',
@@ -355,17 +345,6 @@
 
       chartData.vales.series.forEach((vale, idx) => {
         const color = pickColor(idx + 1);
-        datasets.push({
-          label: `${vale.name} vs fim`,
-          data: vale.changes,
-          borderColor: color,
-          backgroundColor: color + '55',
-          tension: 0.3,
-          borderWidth: 1.5,
-          pointRadius: 3,
-          fill: false,
-        });
-
         datasets.push({
           label: `${vale.name} vs início`,
           data: vale.start_changes,
