@@ -138,6 +138,28 @@ nav a.active { color: var(--text); font-weight: 700; }
   gap: 20px;
 }
 
+.page-hero {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 20px 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  background: linear-gradient(120deg, rgba(56, 189, 248, 0.08), rgba(6, 182, 212, 0.04)), #0b1220;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.page-hero.subtle {
+  background: linear-gradient(120deg, rgba(56, 189, 248, 0.05), rgba(37, 99, 235, 0.04)), #0b1220;
+  border-color: rgba(56, 189, 248, 0.18);
+}
+
+.page-hero h1 { margin: 6px 0; }
+.page-hero .hero-actions { margin-top: 10px; }
+.page-hero .muted { max-width: 720px; }
+
 .hero-card {
   background: linear-gradient(140deg, rgba(59, 130, 246, 0.18), rgba(6, 182, 212, 0.12));
   border: 1px solid rgba(56, 189, 248, 0.3);
