@@ -67,7 +67,7 @@
           {% if total_summary.delta is not none %}
             {{ total_summary.delta|brl }}
             {% if total_summary.delta_pct is not none %}
-              (<strong>{{ '%.1f' % total_summary.delta_pct }}%</strong> vs dia anterior)
+              (<strong>{{ '%.1f' % total_summary.delta_pct }}%</strong> vs início)
             {% else %}
               (sem comparação)
             {% endif %}
@@ -80,7 +80,7 @@
       <div class="card">
         <div class="section-title">
           <p class="eyebrow">Contas</p>
-          <span class="muted">Comparação com o dia anterior</span>
+          <span class="muted">Variação do início ao fim da simulação</span>
         </div>
         <div class="stat-grid">
           {% for card in summary_cards %}
@@ -107,7 +107,7 @@
       </div>
     </div>
 
-    <div class="grid">
+    <div class="grid charts">
       <div class="card">
         <div class="section-title">
           <div>
@@ -116,7 +116,9 @@
           </div>
           <span class="muted">Exibe apenas contas (sem Total)</span>
         </div>
-        <canvas id="accountBands" height="220"></canvas>
+        <div class="chart-container">
+          <canvas id="accountBands"></canvas>
+        </div>
       </div>
 
       <div class="card">
@@ -125,9 +127,11 @@
             <p class="eyebrow">Variação percentual</p>
             <h3>Contas e Total (sem vales)</h3>
           </div>
-          <span class="muted">Comparação dia contra dia anterior</span>
+          <span class="muted">Diferença entre cada dia e o final</span>
         </div>
-        <canvas id="percentChanges" height="220"></canvas>
+        <div class="chart-container">
+          <canvas id="percentChanges"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -243,7 +247,7 @@
             callbacks: {
               label: (ctx) => {
                 const value = ctx.parsed?.y ?? 0;
-                return `${ctx.dataset.label}: ${value.toFixed(1)}%`;
+                return `${ctx.dataset.label}: ${value.toFixed(1)}% vs fim`;
               },
             }
           }
@@ -253,7 +257,7 @@
             ticks: {
               callback: (value) => `${value.toFixed(1)}%`,
             },
-            title: { display: true, text: 'Variação vs dia anterior' },
+            title: { display: true, text: 'Variação para o fim da simulação' },
           },
         },
       },

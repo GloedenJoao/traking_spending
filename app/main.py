@@ -234,14 +234,13 @@ async def dashboard(
 
     for acc in accounts:
         balances = [row["accounts"].get(acc.id, 0.0) for row in rows]
-        changes = [None]
-        for idx in range(1, len(balances)):
-            prev = balances[idx - 1]
-            curr = balances[idx]
-            if prev == 0:
+        final_value = balances[-1] if balances else 0.0
+        changes = []
+        for current in balances:
+            if current == 0:
                 changes.append(None)
             else:
-                changes.append(((curr - prev) / abs(prev)) * 100)
+                changes.append(((final_value - current) / abs(current)) * 100)
         account_series.append({
             "id": acc.id,
             "name": acc.name,
@@ -253,32 +252,31 @@ async def dashboard(
     for row in rows:
         total_values.append(sum(row["accounts"].values()) + row["credit_card"])
 
-    total_changes = [None]
-    for idx in range(1, len(total_values)):
-        prev = total_values[idx - 1]
-        curr = total_values[idx]
-        if prev == 0:
+    total_final = total_values[-1] if total_values else 0.0
+    total_changes = []
+    for current in total_values:
+        if current == 0:
             total_changes.append(None)
         else:
-            total_changes.append(((curr - prev) / abs(prev)) * 100)
+            total_changes.append(((total_final - current) / abs(current)) * 100)
 
     summary_cards = []
     for series in account_series:
         latest = series["balances"][-1] if series["balances"] else 0.0
-        prev = series["balances"][-2] if len(series["balances"]) > 1 else None
-        delta = latest - prev if prev is not None else None
-        delta_pct = ((latest - prev) / abs(prev) * 100) if prev not in (None, 0) else None
+        first = series["balances"][0] if series["balances"] else None
+        delta = latest - first if first is not None else None
+        delta_pct = ((latest - first) / abs(first) * 100) if first not in (None, 0) else None
         summary_cards.append(
             {
                 "name": series["name"],
                 "latest": latest,
-                "prev": prev,
+                "prev": first,
                 "delta": delta,
                 "delta_pct": delta_pct,
             }
         )
 
-    total_prev = total_values[-2] if len(total_values) > 1 else None
+    total_prev = total_values[0] if total_values else None
     total_delta = total_values[-1] - total_prev if total_prev is not None else None
     total_delta_pct = ((total_values[-1] - total_prev) / abs(total_prev) * 100) if total_prev not in (None, 0) else None
 

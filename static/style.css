@@ -58,6 +58,11 @@ h1, h2, h3 {
   gap: 12px;
 }
 
+.grid.charts {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: stretch;
+}
+
 .grid.two {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
@@ -324,3 +329,15 @@ nav a.active { color: var(--text); font-weight: 700; }
 
 .delta.positive { color: var(--positive); }
 .delta.negative { color: var(--negative); }
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: clamp(260px, 36vw, 420px);
+  overflow: hidden;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
