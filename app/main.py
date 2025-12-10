@@ -342,18 +342,40 @@ async def dashboard(
             "changes": total_changes,
             "start_changes": total_start_changes,
         },
+        "vales": {
+            "series": vale_series,
+            "total": {
+                "values": total_vale_values,
+                "changes": total_vale_changes,
+                "start_changes": total_vale_start_changes,
+            },
+        },
     }
 
     selected_account_ids = list(selected_accounts)
 
     total_vale_values = [sum(row["vales"].values()) for row in rows]
     total_vale_prev = total_vale_values[0] if total_vale_values else None
-    total_vale_delta = total_vale_values[-1] - total_vale_prev if total_vale_prev is not None else None
+    total_vale_final = total_vale_values[-1] if total_vale_values else 0.0
+    total_vale_delta = total_vale_final - total_vale_prev if total_vale_prev is not None else None
     total_vale_delta_pct = (
-        (total_vale_values[-1] - total_vale_prev) / abs(total_vale_prev) * 100
+        (total_vale_final - total_vale_prev) / abs(total_vale_prev) * 100
         if total_vale_prev not in (None, 0)
         else None
     )
+
+    total_vale_changes = []
+    total_vale_start_changes = []
+    for current in total_vale_values:
+        if current == 0:
+            total_vale_changes.append(None)
+        else:
+            total_vale_changes.append(((total_vale_final - current) / abs(current)) * 100)
+
+        if total_vale_prev in (None, 0):
+            total_vale_start_changes.append(None)
+        else:
+            total_vale_start_changes.append(((current - total_vale_prev) / abs(total_vale_prev)) * 100)
 
     vale_summary_cards = [
         {
