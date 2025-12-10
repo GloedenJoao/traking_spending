@@ -1,7 +1,8 @@
-from datetime import date
-from typing import List
+import json
+from datetime import date, datetime, timedelta
+from typing import List, Optional
 
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Depends, FastAPI, Form, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -207,11 +208,129 @@ async def update_vale(vale_type: str, balance: float = Form(...), db: Session = 
 
 
 @app.get("/dashboard")
-async def dashboard(request: Request, db: Session = Depends(get_db)):
+async def dashboard(
+    request: Request,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    account_ids: Optional[List[int]] = Query(None),
+    db: Session = Depends(get_db),
+):
+    base_date = date.today()
+    if start_date:
+        try:
+            base_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        except ValueError:
+            base_date = date.today()
+
+    tomorrow = date.today() + timedelta(days=1)
+
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+        except ValueError:
+            end_dt = base_date + timedelta(days=29)
+    else:
+        end_dt = base_date + timedelta(days=29)
+
+    validation_notes = []
+
+    if end_dt <= date.today():
+        validation_notes.append("A data final deve ser maior que hoje; usamos o próximo dia disponível.")
+        end_dt = tomorrow
+
+    if end_dt <= base_date:
+        validation_notes.append("A data final precisa ser posterior à data inicial; janela ajustada automaticamente.")
+        end_dt = base_date + timedelta(days=1)
+
+    requested_span = (end_dt - base_date).days + 1
+    days = max(1, min(requested_span, 365))
+    if requested_span > 365:
+        validation_notes.append("Limitamos a janela a 365 dias a partir do início.")
+    end_dt = base_date + timedelta(days=days - 1)
+
+    rows, _ = simulate(db, base_date, days)
+    accounts = db.query(Account).all()
+
+    selected_accounts = set(account_ids) if account_ids else {acc.id for acc in accounts}
+
+    labels = [row["date"].strftime("%d/%m") for row in rows]
+    account_series = []
+
+    for acc in accounts:
+        balances = [row["accounts"].get(acc.id, 0.0) for row in rows]
+        final_value = balances[-1] if balances else 0.0
+        changes = []
+        for current in balances:
+            if current == 0:
+                changes.append(None)
+            else:
+                changes.append(((final_value - current) / abs(current)) * 100)
+        account_series.append({
+            "id": acc.id,
+            "name": acc.name,
+            "balances": balances,
+            "changes": changes,
+        })
+
+    total_values = []
+    for row in rows:
+        total_values.append(sum(row["accounts"].values()) + row["credit_card"])
+
+    total_final = total_values[-1] if total_values else 0.0
+    total_changes = []
+    for current in total_values:
+        if current == 0:
+            total_changes.append(None)
+        else:
+            total_changes.append(((total_final - current) / abs(current)) * 100)
+
+    summary_cards = []
+    for series in account_series:
+        latest = series["balances"][-1] if series["balances"] else 0.0
+        first = series["balances"][0] if series["balances"] else None
+        delta = latest - first if first is not None else None
+        delta_pct = ((latest - first) / abs(first) * 100) if first not in (None, 0) else None
+        summary_cards.append(
+            {
+                "name": series["name"],
+                "latest": latest,
+                "prev": first,
+                "delta": delta,
+                "delta_pct": delta_pct,
+            }
+        )
+
+    total_prev = total_values[0] if total_values else None
+    total_delta = total_values[-1] - total_prev if total_prev is not None else None
+    total_delta_pct = ((total_values[-1] - total_prev) / abs(total_prev) * 100) if total_prev not in (None, 0) else None
+
+    chart_payload = {
+        "labels": labels,
+        "accounts": account_series,
+        "total": {"values": total_values, "changes": total_changes},
+    }
+
+    selected_account_ids = list(selected_accounts)
+
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
+            "chart_data": json.dumps(chart_payload),
+            "summary_cards": summary_cards,
+            "total_summary": {
+                "latest": total_values[-1] if total_values else 0.0,
+                "prev": total_prev,
+                "delta": total_delta,
+                "delta_pct": total_delta_pct,
+            },
+            "accounts": accounts,
+            "selected_account_ids": selected_account_ids,
+            "selected_accounts_json": json.dumps(selected_account_ids),
+            "start_date": base_date.isoformat(),
+            "end_date": end_dt.isoformat(),
+            "min_end_date": tomorrow.isoformat(),
+            "validation_message": " ".join(validation_notes) if validation_notes else None,
         },
     )
 
