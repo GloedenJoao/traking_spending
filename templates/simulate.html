@@ -142,7 +142,8 @@
           <h3>Simulações lançadas</h3>
           <span class="badge">Remova itens criados aqui</span>
         </div>
-        <div style="overflow-x:auto;">
+        <button class="reveal-btn" type="button" onclick="toggleSimulations()">Mostrar simulações</button>
+        <div id="user-simulations" class="collapsible hidden" style="overflow-x:auto;">
           <table class="table">
             <thead>
               <tr>
@@ -251,6 +252,11 @@
     function toggleLog() {
       const log = document.getElementById('event-log');
       log.classList.toggle('hidden');
+    }
+
+    function toggleSimulations() {
+      const simulations = document.getElementById('user-simulations');
+      simulations.classList.toggle('hidden');
     }
   </script>
 </body>
