@@ -24,26 +24,41 @@
         <div>
           <p class="eyebrow">Filtros</p>
           <h3>Granularidade diária</h3>
-          <p class="muted">Ajuste a janela e quais contas aparecem nos gráficos.</p>
+          <p class="muted">Escolha o intervalo e destaque apenas as contas que quer analisar.</p>
         </div>
-        <div class="badge">Dados a partir de {{ start_date }}</div>
+        <div class="badge">Janela: {{ start_date }} → {{ end_date }}</div>
       </div>
-      <form method="get" class="form-row compact">
-        <div>
+      {% if validation_message %}
+        <div class="notice warning">{{ validation_message }}</div>
+      {% endif %}
+      <form method="get" class="filter-grid">
+        <div class="stacked">
           <label for="start_date">Data inicial</label>
           <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+          <p class="hint">Inclui o dia escolhido e segue em frente.</p>
         </div>
-        <div>
-          <label for="days">Dias simulados</label>
-          <input type="number" id="days" name="days" min="7" max="365" value="{{ days }}">
+        <div class="stacked">
+          <label for="end_date">Data final</label>
+          <input type="date" id="end_date" name="end_date" min="{{ min_end_date }}" value="{{ end_date }}">
+          <p class="hint">Precisa ser maior que hoje. Limitamos a 365 dias a partir do início.</p>
         </div>
-        <div>
-          <label>Contas exibidas</label>
-          <div class="pill-group">
+        <div class="stacked account-select">
+          <div class="select-actions">
+            <div>
+              <label>Contas exibidas</label>
+              <p class="hint"><span class="selected-count">{{ selected_account_ids|length }}</span> selecionada(s) • ajuste no clique</p>
+            </div>
+            <div class="chip-row">
+              <button type="button" class="chip tiny" data-select="all">Selecionar todas</button>
+              <button type="button" class="chip tiny ghost" data-select="none">Limpar</button>
+            </div>
+          </div>
+          <div class="account-grid">
             {% for acc in accounts %}
-              <label class="pill">
+              <label class="select-card {% if acc.id in selected_account_ids %}active{% endif %}">
                 <input type="checkbox" name="account_ids" value="{{ acc.id }}" {% if acc.id in selected_account_ids %}checked{% endif %}>
-                <span>{{ acc.name }}</span>
+                <div class="select-card__name">{{ acc.name }}</div>
+                <div class="select-card__pill">{{ 'Incluída' if acc.id in selected_account_ids else 'Oculta' }}</div>
               </label>
             {% endfor %}
           </div>
@@ -263,11 +278,43 @@
       },
     });
 
-    document.querySelectorAll('input[name="account_ids"]').forEach((input) => {
+    const selectedCountEl = document.querySelector('.selected-count');
+
+    function syncCount() {
+      if (selectedCountEl) {
+        selectedCountEl.textContent = selectedAccountIds.size;
+      }
+    }
+
+    function syncCardVisual(input) {
+      const card = input.closest('.select-card');
+      const pill = card?.querySelector('.select-card__pill');
+      if (input.checked) {
+        card?.classList.add('active');
+        if (pill) pill.textContent = 'Incluída';
+      } else {
+        card?.classList.remove('active');
+        if (pill) pill.textContent = 'Oculta';
+      }
+    }
+
+    function refreshCharts() {
+      accountChart.data.datasets = buildAccountDatasets();
+      percentChart.data.datasets = buildPercentDatasets();
+      accountChart.update();
+      percentChart.update();
+    }
+
+    const accountInputs = Array.from(document.querySelectorAll('input[name="account_ids"]'));
+
+    accountInputs.forEach((input) => {
       const id = Number(input.value);
-      if (!selectedAccountIds.size && input.checked) {
+
+      if (input.checked) {
         selectedAccountIds.add(id);
       }
+
+      syncCardVisual(input);
 
       input.addEventListener('change', (event) => {
         if (event.target.checked) {
@@ -276,12 +323,32 @@
           selectedAccountIds.delete(id);
         }
 
-        accountChart.data.datasets = buildAccountDatasets();
-        percentChart.data.datasets = buildPercentDatasets();
-        accountChart.update();
-        percentChart.update();
+        syncCardVisual(input);
+        syncCount();
+        refreshCharts();
       });
     });
+
+    document.querySelectorAll('button[data-select]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.select;
+        accountInputs.forEach((input) => {
+          const id = Number(input.value);
+          if (mode === 'all') {
+            input.checked = true;
+            selectedAccountIds.add(id);
+          } else {
+            input.checked = false;
+            selectedAccountIds.delete(id);
+          }
+          syncCardVisual(input);
+        });
+        syncCount();
+        refreshCharts();
+      });
+    });
+
+    syncCount();
   </script>
 </body>
 </html>

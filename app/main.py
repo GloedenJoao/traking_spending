@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, Form, Query, Request
@@ -210,8 +210,8 @@ async def update_vale(vale_type: str, balance: float = Form(...), db: Session = 
 @app.get("/dashboard")
 async def dashboard(
     request: Request,
-    days: int = 30,
     start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     account_ids: Optional[List[int]] = Query(None),
     db: Session = Depends(get_db),
 ):
@@ -222,7 +222,31 @@ async def dashboard(
         except ValueError:
             base_date = date.today()
 
-    days = max(1, min(days, 365))
+    tomorrow = date.today() + timedelta(days=1)
+
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+        except ValueError:
+            end_dt = base_date + timedelta(days=29)
+    else:
+        end_dt = base_date + timedelta(days=29)
+
+    validation_notes = []
+
+    if end_dt <= date.today():
+        validation_notes.append("A data final deve ser maior que hoje; usamos o próximo dia disponível.")
+        end_dt = tomorrow
+
+    if end_dt <= base_date:
+        validation_notes.append("A data final precisa ser posterior à data inicial; janela ajustada automaticamente.")
+        end_dt = base_date + timedelta(days=1)
+
+    requested_span = (end_dt - base_date).days + 1
+    days = max(1, min(requested_span, 365))
+    if requested_span > 365:
+        validation_notes.append("Limitamos a janela a 365 dias a partir do início.")
+    end_dt = base_date + timedelta(days=days - 1)
 
     rows, _ = simulate(db, base_date, days)
     accounts = db.query(Account).all()
@@ -304,7 +328,9 @@ async def dashboard(
             "selected_account_ids": selected_account_ids,
             "selected_accounts_json": json.dumps(selected_account_ids),
             "start_date": base_date.isoformat(),
-            "days": days,
+            "end_date": end_dt.isoformat(),
+            "min_end_date": tomorrow.isoformat(),
+            "validation_message": " ".join(validation_notes) if validation_notes else None,
         },
     )
 

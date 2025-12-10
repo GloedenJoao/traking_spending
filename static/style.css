@@ -281,6 +281,39 @@ nav a.active { color: var(--text); font-weight: 700; }
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
 }
 
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.notice {
+  background: #13203a;
+  border: 1px solid #2563eb55;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin: 10px 0;
+  color: #dbeafe;
+}
+
+.notice.warning {
+  border-color: #f59e0b66;
+  color: #fef3c7;
+}
+
 .pill-group {
   display: flex;
   flex-wrap: wrap;
@@ -305,6 +338,75 @@ nav a.active { color: var(--text); font-weight: 700; }
 .align-end {
   display: flex;
   align-items: flex-end;
+}
+
+.account-select {
+  grid-column: 1 / -1;
+}
+
+.select-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip.tiny {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.select-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #0b1220;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.select-card input {
+  display: none;
+}
+
+.select-card__name {
+  font-weight: 600;
+}
+
+.select-card__pill {
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #0f172a;
+  width: max-content;
+}
+
+.select-card.active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+}
+
+.select-card.active .select-card__pill {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .insight-card {
