@@ -1,7 +1,15 @@
 from datetime import date, timedelta
 from typing import Dict, List, Tuple
 
-from .models import Account, CreditCard, Salary, Transaction, Transfer, ValeBalance
+from .models import (
+    Account,
+    CreditCard,
+    Salary,
+    SimulationEvent,
+    Transaction,
+    Transfer,
+    ValeBalance,
+)
 from .utils import adjust_to_previous_business_day, penultimate_business_day, daterange
 
 VALE_REFEICAO_VALUE = 1236.40
@@ -25,9 +33,13 @@ def ensure_defaults(db_session):
 
 
 def build_monthly_events(
-    start_date: date, days: int, salary: Salary, credit_card: CreditCard
-) -> Dict[date, List[Tuple[str, float, str]]]:
-    events: Dict[date, List[Tuple[str, float, str]]] = {}
+    start_date: date,
+    days: int,
+    salary: Salary,
+    credit_card: CreditCard,
+    corrente_account_id: int,
+) -> Dict[date, List[Dict[str, object]]]:
+    events: Dict[date, List[Dict[str, object]]] = {}
     end_date = start_date + timedelta(days=days)
 
     current = start_date.replace(day=1)
@@ -37,16 +49,31 @@ def build_monthly_events(
         )
         if start_date <= salary_date <= end_date:
             events.setdefault(salary_date, []).append(
-                ("Salário", salary.amount, "account:corrente")
+                {
+                    "description": "Salário",
+                    "amount": salary.amount,
+                    "tag": "account:corrente",
+                    "account_id": corrente_account_id,
+                }
             )
 
         penultimate = penultimate_business_day(current.year, current.month)
         if start_date <= penultimate <= end_date:
             events.setdefault(penultimate, []).append(
-                ("Crédito Vale Refeição", VALE_REFEICAO_VALUE, "vale:vale_refeicao")
+                {
+                    "description": "Crédito Vale Refeição",
+                    "amount": VALE_REFEICAO_VALUE,
+                    "tag": "vale:vale_refeicao",
+                    "account_id": None,
+                }
             )
             events[penultimate].append(
-                ("Crédito Vale Alimentação", VALE_ALIMENTACAO_VALUE, "vale:vale_alimentacao")
+                {
+                    "description": "Crédito Vale Alimentação",
+                    "amount": VALE_ALIMENTACAO_VALUE,
+                    "tag": "vale:vale_alimentacao",
+                    "account_id": None,
+                }
             )
 
         due_day = adjust_to_previous_business_day(
@@ -54,7 +81,12 @@ def build_monthly_events(
         )
         if start_date <= due_day <= end_date:
             events.setdefault(due_day, []).append(
-                ("Pagamento fatura", -1.0, "credit_card:pay")
+                {
+                    "description": "Pagamento fatura",
+                    "amount": -1.0,
+                    "tag": "credit_card:pay",
+                    "account_id": corrente_account_id,
+                }
             )
 
         if current.month == 12:
@@ -62,6 +94,79 @@ def build_monthly_events(
         else:
             current = date(current.year, current.month + 1, 1)
     return events
+
+
+def consolidate_events(
+    db_session, start_date: date, days: int, accounts: List[Account]
+):
+    end_date = start_date + timedelta(days=days)
+    salary = db_session.query(Salary).first()
+    credit_card = db_session.query(CreditCard).first()
+
+    corrente = next((acc for acc in accounts if acc.type == "corrente"), None)
+    corrente_id = corrente.id if corrente else None
+
+    db_session.query(SimulationEvent).filter(
+        SimulationEvent.date.between(start_date, end_date)
+    ).delete()
+
+    monthly_events = build_monthly_events(
+        start_date, days, salary, credit_card, corrente_id
+    )
+    for day, items in monthly_events.items():
+        for evt in items:
+            db_session.add(
+                SimulationEvent(
+                    date=day,
+                    description=evt["description"],
+                    amount=evt["amount"],
+                    tag=evt["tag"],
+                    account_id=evt.get("account_id"),
+                )
+            )
+
+    transactions = (
+        db_session.query(Transaction)
+        .filter(Transaction.date.between(start_date, end_date))
+        .all()
+    )
+    for txn in transactions:
+        db_session.add(
+            SimulationEvent(
+                date=txn.date,
+                description=txn.description,
+                amount=txn.amount,
+                tag=f"txn:{txn.target_type}",
+                account_id=txn.account_id,
+            )
+        )
+
+    transfers = (
+        db_session.query(Transfer)
+        .filter(Transfer.date.between(start_date, end_date))
+        .all()
+    )
+    for mov in transfers:
+        db_session.add(
+            SimulationEvent(
+                date=mov.date,
+                description=mov.description,
+                amount=-mov.amount,
+                tag=f"transfer:from:{mov.from_account_id}",
+                account_id=mov.from_account_id,
+            )
+        )
+        db_session.add(
+            SimulationEvent(
+                date=mov.date,
+                description=mov.description,
+                amount=mov.amount,
+                tag=f"transfer:to:{mov.to_account_id}",
+                account_id=mov.to_account_id,
+            )
+        )
+
+    db_session.commit()
 
 
 def simulate(db_session, start_date: date, days: int):
@@ -78,56 +183,53 @@ def simulate(db_session, start_date: date, days: int):
     }
     card_balance = -abs(credit_card.open_amount) if credit_card else 0.0
 
-    monthly_events = build_monthly_events(start_date, days, salary, credit_card)
+    consolidate_events(db_session, start_date, days, accounts)
+    events = (
+        db_session.query(SimulationEvent)
+        .filter(
+            SimulationEvent.date >= start_date,
+            SimulationEvent.date <= start_date + timedelta(days=days),
+        )
+        .order_by(SimulationEvent.date, SimulationEvent.id)
+        .all()
+    )
 
-    transactions = db_session.query(Transaction).all()
-    transfers = db_session.query(Transfer).all()
+    events_by_date: Dict[date, List[SimulationEvent]] = {}
+    for event in events:
+        events_by_date.setdefault(event.date, []).append(event)
 
     rows = []
     event_log: List[Tuple[date, str, float, str]] = []
 
     for day in daterange(start_date, days):
-        for label, amount, target in monthly_events.get(day, []):
-            actual_amount = amount
-            if target == "account:corrente":
-                corrente = next((acc for acc in accounts if acc.type == "corrente"), None)
-                if corrente:
-                    account_balances[corrente.id] += amount
-            elif target.startswith("vale:"):
-                vale_key = target.split(":")[1]
-                vale_balances[vale_key] += amount
-            elif target == "credit_card:pay":
-                corrente = next((acc for acc in accounts if acc.type == "corrente"), None)
-                if corrente and card_balance != 0:
+        for evt in events_by_date.get(day, []):
+            actual_amount = evt.amount
+            if evt.tag == "account:corrente" and evt.account_id:
+                account_balances[evt.account_id] += evt.amount
+            elif evt.tag.startswith("vale:"):
+                vale_key = evt.tag.split(":")[1]
+                vale_balances[vale_key] += evt.amount
+            elif evt.tag == "credit_card:pay":
+                if evt.account_id and card_balance != 0:
                     payment = abs(card_balance)
-                    account_balances[corrente.id] -= payment
+                    account_balances[evt.account_id] -= payment
                     actual_amount = -payment
                     card_balance = 0.0
                 else:
                     actual_amount = 0.0
-            event_log.append((day, label, actual_amount, target))
-
-        for txn in [t for t in transactions if t.date == day]:
-            if txn.target_type == "account" and txn.account_id:
-                account_balances[txn.account_id] += txn.amount
-            elif txn.target_type == "credit_card":
-                card_balance += txn.amount
-            elif txn.target_type == "vale_refeicao":
-                vale_balances["vale_refeicao"] += txn.amount
-            elif txn.target_type == "vale_alimentacao":
-                vale_balances["vale_alimentacao"] += txn.amount
-            event_log.append((day, txn.description, txn.amount, f"txn:{txn.target_type}"))
-
-        for mov in [m for m in transfers if m.date == day]:
-            if mov.from_account_id in account_balances and mov.to_account_id in account_balances:
-                account_balances[mov.from_account_id] -= mov.amount
-                account_balances[mov.to_account_id] += mov.amount
-                event_log.append(
-                    (day, mov.description, -mov.amount, f"transfer:from:{mov.from_account_id}")
-                )
-                event_log.append(
-                    (day, mov.description, mov.amount, f"transfer:to:{mov.to_account_id}")
-                )
+            elif evt.tag == "txn:account" and evt.account_id:
+                account_balances[evt.account_id] += evt.amount
+            elif evt.tag == "txn:credit_card":
+                card_balance += evt.amount
+            elif evt.tag == "txn:vale_refeicao":
+                vale_balances["vale_refeicao"] += evt.amount
+            elif evt.tag == "txn:vale_alimentacao":
+                vale_balances["vale_alimentacao"] += evt.amount
+            elif evt.tag.startswith("transfer:from") and evt.account_id:
+                account_balances[evt.account_id] += evt.amount
+            elif evt.tag.startswith("transfer:to") and evt.account_id:
+                account_balances[evt.account_id] += evt.amount
+            event_log.append((day, evt.description, actual_amount, evt.tag))
 
         rows.append(
             {
