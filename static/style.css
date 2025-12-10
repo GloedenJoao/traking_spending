@@ -1,6 +1,8 @@
 :root {
-  --bg: #0f172a;
-  --panel: #111827;
+  --bg: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.08), transparent 25%),
+        radial-gradient(circle at 80% 0%, rgba(52, 211, 153, 0.08), transparent 25%),
+        #0b1020;
+  --panel: #0f172a;
   --text: #e5e7eb;
   --muted: #9ca3af;
   --accent: #38bdf8;
@@ -18,12 +20,13 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
+  min-height: 100vh;
 }
 
 a { color: var(--accent); }
 
 header {
-  padding: 20px;
+  padding: 24px;
   background: #0b1220;
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -33,15 +36,17 @@ header {
 
 .container {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto 32px;
 }
 
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 16px;
+  padding: 18px;
   margin-bottom: 16px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.35);
 }
 
 h1, h2, h3 {
@@ -57,14 +62,27 @@ h1, h2, h3 {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
 label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 4px; }
 input, select {
   width: 100%;
   padding: 10px;
   background: #0b1220;
-  border: 1px solid var(--border);
+  border: 1px solid #1f2a3d;
   color: var(--text);
   border-radius: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 button {
@@ -111,8 +129,113 @@ button.secondary {
 nav a { margin-right: 12px; text-decoration: none; }
 nav a.active { color: var(--text); font-weight: 700; }
 
+.hero {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 20px 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.hero-card {
+  background: linear-gradient(140deg, rgba(59, 130, 246, 0.18), rgba(6, 182, 212, 0.12));
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(6, 182, 212, 0.15);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.chip {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  background: #0b1220;
+}
+
+.chip.active {
+  background: #1b2944;
+  border-color: #3b82f6;
+}
+
+.chip.ghost {
+  background: none;
+  border-color: rgba(255,255,255,0.12);
+  color: var(--muted);
+}
+
+.hero-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+
+.form-row.compact {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  align-items: center;
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+}
 
 .section-title { display: flex; align-items: center; justify-content: space-between; }
 
 .muted { color: var(--muted); font-size: 0.9rem; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.reveal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.reveal-btn {
+  border: 1px solid var(--border);
+  background: #0b1220;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.reveal-btn.active,
+.reveal-btn:hover {
+  border-color: #3b82f6;
+  background: #13203a;
+}
+
+.collapsible.hidden { display: none; }
+
+.highlight {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(37, 99, 235, 0.08));
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.big-number {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
