@@ -334,24 +334,6 @@ async def dashboard(
     total_delta = total_values[-1] - total_prev if total_prev is not None else None
     total_delta_pct = ((total_values[-1] - total_prev) / abs(total_prev) * 100) if total_prev not in (None, 0) else None
 
-    chart_payload = {
-        "labels": labels,
-        "accounts": account_series,
-        "total": {
-            "values": total_values,
-            "changes": total_changes,
-            "start_changes": total_start_changes,
-        },
-        "vales": {
-            "series": vale_series,
-            "total": {
-                "values": total_vale_values,
-                "changes": total_vale_changes,
-                "start_changes": total_vale_start_changes,
-            },
-        },
-    }
-
     selected_account_ids = list(selected_accounts)
 
     total_vale_values = [sum(row["vales"].values()) for row in rows]
@@ -396,6 +378,24 @@ async def dashboard(
                 "delta_pct": series["delta_pct"],
             }
         )
+
+    chart_payload = {
+        "labels": labels,
+        "accounts": account_series,
+        "total": {
+            "values": total_values,
+            "changes": total_changes,
+            "start_changes": total_start_changes,
+        },
+        "vales": {
+            "series": vale_series,
+            "total": {
+                "values": total_vale_values,
+                "changes": total_vale_changes,
+                "start_changes": total_vale_start_changes,
+            },
+        },
+    }
 
     return templates.TemplateResponse(
         "dashboard.html",
