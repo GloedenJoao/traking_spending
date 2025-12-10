@@ -122,14 +122,16 @@ async def add_transaction(
     description: str = Form(...),
     amount: float = Form(...),
     date_value: str = Form(...),
+    transaction_type: str = Form("debit"),
     target_type: str = Form(...),
     account_id: int = Form(None),
     db: Session = Depends(get_db),
 ):
     txn_date = date.fromisoformat(date_value)
+    signed_amount = amount if transaction_type == "credit" else -amount
     txn = Transaction(
         description=description,
-        amount=amount,
+        amount=signed_amount,
         date=txn_date,
         target_type=target_type,
         account_id=account_id if target_type == "account" else None,

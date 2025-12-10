@@ -30,13 +30,18 @@
               <input type="text" name="description" required>
             </div>
             <div>
-              <label>Valor (use negativo para créditos)</label>
+              <label>Valor</label>
               <input type="number" step="0.01" name="amount" required>
             </div>
             <div>
               <label>Data</label>
               <input type="date" name="date_value" required>
             </div>
+          </div>
+          <label>Tipo de transação</label>
+          <div class="form-row compact">
+            <label class="inline"><input type="radio" name="transaction_type" value="debit" checked> Débito</label>
+            <label class="inline"><input type="radio" name="transaction_type" value="credit"> Crédito</label>
           </div>
           <label>Onde ocorrerá?</label>
           <select name="target_type" id="targetType" onchange="toggleAccountSelect(this.value)">
@@ -98,36 +103,39 @@
           <button type="submit">Agendar movimentação</button>
         </form>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">
-        <h3>Eventos futuros considerados</h3>
-        <span class="badge">Transações + salário + vales + fatura</span>
       </div>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Descrição</th>
-            <th>Valor</th>
-            <th>Origem/Destino</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for evt in event_log %}
-          <tr>
-            <td>{{ evt[0] }}</td>
-            <td>{{ evt[1] }}</td>
-            <td class="{{ 'positive' if evt[2] >=0 else 'negative' }}">{{ evt[2]|brl }}</td>
-            <td>{{ evt[3] }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="4" class="muted">Nenhum evento ainda.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+
+      <div class="card">
+        <div class="section-title">
+          <h3>Eventos futuros considerados</h3>
+          <span class="badge">Transações + salário + vales + fatura</span>
+        </div>
+        <button class="reveal-btn" type="button" onclick="toggleLog()">Mostrar eventos</button>
+        <div id="event-log" class="collapsible hidden">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Origem/Destino</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for evt in event_log %}
+              <tr>
+                <td>{{ evt[0] }}</td>
+                <td>{{ evt[1] }}</td>
+                <td class="{{ 'positive' if evt[2] >=0 else 'negative' }}">{{ evt[2]|brl }}</td>
+                <td>{{ evt[3] }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="muted">Nenhum evento ainda.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
     <div class="card">
       <div class="section-title">
@@ -177,6 +185,11 @@
     function toggleAccountSelect(value) {
       const select = document.getElementById('accountSelect');
       select.style.display = value === 'account' ? 'block' : 'none';
+    }
+
+    function toggleLog() {
+      const log = document.getElementById('event-log');
+      log.classList.toggle('hidden');
     }
   </script>
 </body>

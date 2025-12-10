@@ -9,11 +9,12 @@
   <header class="hero">
     <div>
       <p class="eyebrow">Painel financeiro</p>
-      <h1>Crie seu ponto de partida com uma home moderna</h1>
-      <p class="muted">Cadastre os dados fixos e veja um resumo rápido antes de simular o futuro.</p>
+      <h1>Visão inicial sem distrações</h1>
+      <p class="muted">Acompanhe rapidamente saldos e dívidas e decida se precisa ajustar algum valor antes de simular.</p>
       <div class="hero-actions">
-        <a href="/" class="chip active">Visão inicial</a>
-        <a href="/simulate" class="chip">Simulação e eventos</a>
+        <button class="chip active" data-tab-target="painel">Painel financeiro</button>
+        <button class="chip" data-tab-target="config">Atualizar valores</button>
+        <a href="/simulate" class="chip ghost">Simulação e eventos</a>
       </div>
     </div>
     <div class="hero-card">
@@ -26,25 +27,95 @@
           <h2>{{ (corrente.balance if corrente else 0)|brl }}</h2>
         </div>
         <div>
-          <p class="muted">Fatura aberta</p>
+          <p class="muted">Caixinhas</p>
+          <h2>{{ (caixinhas | map(attribute='balance') | sum if caixinhas else 0)|brl }}</h2>
+        </div>
+        <div>
+          <p class="muted">Fatura em aberto</p>
           <h2 class="{{ 'positive' if card.open_amount >=0 else 'negative' }}">{{ card.open_amount|brl }}</h2>
         </div>
         <div>
-          <p class="muted">Vale Refeição</p>
-          <h2>{{ (vale_ref.balance if vale_ref else 0)|brl }}</h2>
-        </div>
-        <div>
-          <p class="muted">Vale Alimentação</p>
-          <h2>{{ (vale_alim.balance if vale_alim else 0)|brl }}</h2>
+          <p class="muted">Vales ativos</p>
+          <h2>{{ ((vale_ref.balance if vale_ref else 0) + (vale_alim.balance if vale_alim else 0))|brl }}</h2>
         </div>
       </div>
-      <span class="badge">Atualize os valores para começar</span>
+      <span class="badge">Clique em atualizar valores para editar</span>
     </div>
   </header>
 
   <div class="container">
-    <section class="grid two">
+    <section id="tab-painel" class="tab-panel active">
+      <div class="panel-grid">
+        <div class="card highlight">
+          <div class="section-title">
+            <div>
+              <p class="muted">Saldo consolidado</p>
+              <h3>Disponível hoje</h3>
+            </div>
+            <span class="badge">Conta + caixinhas</span>
+          </div>
+          <p class="big-number">{{ ((corrente.balance if corrente else 0) + (caixinhas | map(attribute='balance') | sum if caixinhas else 0))|brl }}</p>
+          <p class="muted">Use esta visão para decidir transferências entre caixinhas e a conta principal.</p>
+        </div>
+
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <p class="muted">Fluxo mensal</p>
+              <h3>Entrada fixa</h3>
+            </div>
+            <span class="badge">Salário</span>
+          </div>
+          <p class="big-number">{{ (salary.amount if salary else 0)|brl }}</p>
+          <p class="muted">Programado para o dia {{ salary.payday if salary else '?' }} com ajuste automático para finais de semana.</p>
+        </div>
+
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <p class="muted">Dívida atual</p>
+              <h3>Cartão de crédito</h3>
+            </div>
+            <span class="badge">Fatura aberta</span>
+          </div>
+          <p class="big-number {{ 'positive' if card.open_amount >=0 else 'negative' }}">{{ card.open_amount|brl }}</p>
+          <p class="muted">Vencimento no dia {{ card.due_day }}. Ajuste valores na aba de configuração.</p>
+        </div>
+
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <p class="muted">Benefícios</p>
+              <h3>Vales ativos</h3>
+            </div>
+            <span class="badge">Penúltimo dia útil</span>
+          </div>
+          <p class="big-number">{{ (vale_ref.balance if vale_ref else 0)|brl }} <span class="muted">refeição</span></p>
+          <p class="big-number">{{ (vale_alim.balance if vale_alim else 0)|brl }} <span class="muted">alimentação</span></p>
+          <p class="muted">Os valores são recarregados automaticamente na simulação.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-config" class="tab-panel">
       <div class="card">
+        <div class="section-title">
+          <div>
+            <p class="muted">Selecione o que deseja editar</p>
+            <h3>Atualize valores</h3>
+          </div>
+          <span class="badge">Tudo começa aqui</span>
+        </div>
+        <div class="reveal-grid">
+          <button class="reveal-btn" data-target="card-corrente">Conta corrente</button>
+          <button class="reveal-btn" data-target="card-caixinhas">Caixinhas de CDB</button>
+          <button class="reveal-btn" data-target="card-cartao">Cartão de crédito</button>
+          <button class="reveal-btn" data-target="card-salario">Salário</button>
+          <button class="reveal-btn" data-target="card-vales">Vales</button>
+        </div>
+      </div>
+
+      <div id="card-corrente" class="card collapsible">
         <div class="section-title">
           <h3>Conta corrente</h3>
           <span class="badge">Saldo atual</span>
@@ -56,7 +127,7 @@
         </form>
       </div>
 
-      <div class="card">
+      <div id="card-caixinhas" class="card collapsible">
         <div class="section-title">
           <h3>Caixinhas de CDB</h3>
           <span class="badge">Crie e edite</span>
@@ -87,10 +158,8 @@
         {% endfor %}
         {% endif %}
       </div>
-    </section>
 
-    <section class="grid two">
-      <div class="card">
+      <div id="card-cartao" class="card collapsible">
         <div class="section-title">
           <h3>Cartão de crédito</h3>
           <span class="badge">Fatura aberta</span>
@@ -106,7 +175,7 @@
         </form>
       </div>
 
-      <div class="card">
+      <div id="card-salario" class="card collapsible">
         <div class="section-title">
           <h3>Salário</h3>
           <span class="badge">Entrada padrão na conta corrente</span>
@@ -120,24 +189,48 @@
           <button type="submit">Salvar salário</button>
         </form>
       </div>
-    </section>
 
-    <section class="card">
-      <div class="section-title">
-        <h3>Vales</h3>
-        <span class="badge">Crédito no penúltimo dia útil</span>
-      </div>
-      <p class="muted">Valores fixos: Vale Refeição R$ 1236,40 | Vale Alimentação R$ 974,16. Saldos são isolados.</p>
-      <div class="grid two">
-        {% for vale in vales %}
-        <form method="post" action="/vales/{{ vale.vale_type }}" class="grid">
-          <label>{{ 'Vale Refeição' if vale.vale_type == 'vale_refeicao' else 'Vale Alimentação' }}</label>
-          <input type="number" step="0.01" name="balance" value="{{ vale.balance }}" placeholder="Ex: 500,00">
-          <button type="submit">Atualizar saldo</button>
-        </form>
-        {% endfor %}
+      <div id="card-vales" class="card collapsible">
+        <div class="section-title">
+          <h3>Vales</h3>
+          <span class="badge">Crédito no penúltimo dia útil</span>
+        </div>
+        <p class="muted">Valores fixos: Vale Refeição R$ 1236,40 | Vale Alimentação R$ 974,16. Saldos são isolados.</p>
+        <div class="grid two">
+          {% for vale in vales %}
+          <form method="post" action="/vales/{{ vale.vale_type }}" class="grid">
+            <label>{{ 'Vale Refeição' if vale.vale_type == 'vale_refeicao' else 'Vale Alimentação' }}</label>
+            <input type="number" step="0.01" name="balance" value="{{ vale.balance }}" placeholder="Ex: 500,00">
+            <button type="submit">Atualizar saldo</button>
+          </form>
+          {% endfor %}
+        </div>
       </div>
     </section>
   </div>
+  <script>
+    const tabButtons = document.querySelectorAll('[data-tab-target]');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+    const revealButtons = document.querySelectorAll('.reveal-btn');
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-tab-target');
+        tabButtons.forEach((b) => b.classList.toggle('active', b === btn));
+        tabPanels.forEach((panel) => panel.classList.toggle('active', panel.id === `tab-${target}`));
+      });
+    });
+
+    revealButtons.forEach((btn) => {
+      const target = document.getElementById(btn.dataset.target);
+      if (target) {
+        target.classList.add('hidden');
+        btn.addEventListener('click', () => {
+          target.classList.toggle('hidden');
+          btn.classList.toggle('active');
+        });
+      }
+    });
+  </script>
 </body>
 </html>
