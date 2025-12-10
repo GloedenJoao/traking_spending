@@ -10,7 +10,7 @@
     <div>
       <p class="eyebrow">Panorama</p>
       <h1>Dashboard</h1>
-      <p class="muted">Visualizações diárias com as contas, variações e consolidado (sem vales).</p>
+      <p class="muted">Visualizações diárias com contas, vales, variações e consolidado.</p>
       <div class="hero-actions">
         <a href="/" class="chip ghost">Visão inicial</a>
         <a href="/simulate" class="chip ghost">Simulação e eventos</a>
@@ -125,6 +125,59 @@
       </div>
     </div>
 
+    <div class="panel-grid">
+      <div class="card highlight">
+        <p class="eyebrow">Vales</p>
+        <div class="section-title">
+          <h2>Total</h2>
+          <div class="chip">Refeição + Alimentação</div>
+        </div>
+        <div class="big-number">{{ vale_total_summary.latest|brl }}</div>
+        <p class="muted">Último dia simulado</p>
+        <div class="delta {{ 'positive' if vale_total_summary.delta is not none and vale_total_summary.delta > 0 else 'negative' if vale_total_summary.delta is not none and vale_total_summary.delta < 0 else '' }}">
+          {% if vale_total_summary.delta is not none %}
+            {{ vale_total_summary.delta|brl }}
+            {% if vale_total_summary.delta_pct is not none %}
+              (<strong>{{ '%.1f' % vale_total_summary.delta_pct }}%</strong> vs início)
+            {% else %}
+              (sem comparação)
+            {% endif %}
+          {% else %}
+            Sem comparação com o dia anterior
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <p class="eyebrow">Vales</p>
+          <span class="muted">Variação do início ao fim da simulação</span>
+        </div>
+        <div class="stat-grid">
+          {% for card in vale_summary_cards %}
+            <div class="insight-card">
+              <div class="inline">
+                <span class="dot"></span>
+                <strong>{{ card.name }}</strong>
+              </div>
+              <div class="big-number">{{ card.latest|brl }}</div>
+              <p class="muted">Saldo do último dia</p>
+              <div class="delta {{ 'positive' if card.delta is not none and card.delta > 0 else 'negative' if card.delta is not none and card.delta < 0 else '' }}">
+                {% if card.delta is not none %}
+                  {{ card.delta|brl }}
+                  {% if card.delta_pct is not none %}
+                    (<strong>{{ '%.1f' % card.delta_pct }}%</strong>)
+                  {% endif %}
+                {% else %}
+                  Sem variação registrada
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
     <div class="grid charts">
       <div class="card">
         <div class="section-title">
@@ -152,6 +205,34 @@
         </div>
       </div>
     </div>
+
+    <div class="grid charts">
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Faixas diárias</p>
+            <h3>Vales ao longo do tempo</h3>
+          </div>
+          <span class="muted">Inclui vales individuais e total</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="valeBands"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Variação percentual</p>
+            <h3>Total de vales</h3>
+          </div>
+          <span class="muted">Diferença diária vs fim e vs início da simulação</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="valePercentChanges"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -170,6 +251,8 @@
 
     const accountCtx = document.getElementById('accountBands').getContext('2d');
     const percentCtx = document.getElementById('percentChanges').getContext('2d');
+    const valeCtx = document.getElementById('valeBands').getContext('2d');
+    const valePercentCtx = document.getElementById('valePercentChanges').getContext('2d');
 
     function buildAccountDatasets() {
       const datasets = [
@@ -220,6 +303,62 @@
           data: chartData.total.start_changes,
           borderColor: '#6366f1',
           backgroundColor: '#6366f155',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 3,
+          borderDash: [6, 4],
+          fill: false,
+        }
+      ];
+    }
+
+    function buildValeDatasets() {
+      const datasets = [
+        {
+          label: 'Total vales',
+          data: chartData.vales.total.values,
+          borderColor: '#10b981',
+          backgroundColor: '#10b98133',
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 2,
+          fill: false,
+          stack: 'vale_total',
+        },
+      ];
+
+      chartData.vales.series.forEach((vale, idx) => {
+        datasets.push({
+          label: vale.name,
+          data: vale.balances,
+          fill: true,
+          borderColor: pickColor(idx + 2),
+          backgroundColor: pickColor(idx + 2) + '33',
+          tension: 0.35,
+          stack: 'vales',
+        });
+      });
+
+      return datasets;
+    }
+
+    function buildValePercentDatasets() {
+      return [
+        {
+          label: 'Vales vs fim',
+          data: chartData.vales.total.changes,
+          borderColor: '#10b981',
+          backgroundColor: '#10b98155',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 3,
+          fill: false,
+        },
+        {
+          label: 'Vales vs início',
+          data: chartData.vales.total.start_changes,
+          borderColor: '#0ea5e9',
+          backgroundColor: '#0ea5e955',
           tension: 0.3,
           borderWidth: 2,
           pointRadius: 3,
@@ -298,6 +437,75 @@
       },
     });
 
+    const valeChart = new Chart(valeCtx, {
+      type: 'line',
+      data: {
+        labels: chartData.labels,
+        datasets: buildValeDatasets(),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const value = ctx.parsed?.y ?? 0;
+                return `${ctx.dataset.label}: ${formatBRL(value)}`;
+              }
+            }
+          },
+          legend: { position: 'bottom' },
+        },
+        scales: {
+          x: { stacked: true },
+          y: {
+            stacked: true,
+            ticks: {
+              callback: (value) => formatBRL(value),
+            },
+          },
+        },
+      },
+    });
+
+    const valePercentChart = new Chart(valePercentCtx, {
+      type: 'line',
+      data: {
+        labels: chartData.labels,
+        datasets: buildValePercentDatasets(),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const value = ctx.parsed?.y ?? 0;
+                return `${ctx.dataset.label}: ${value.toFixed(1)}%`;
+              },
+            }
+          }
+        },
+        scales: {
+          y: {
+            ticks: {
+              callback: (value) => `${value.toFixed(1)}%`,
+            },
+            title: { display: true, text: 'Variação percentual (linha base em 0%)' },
+            grid: {
+              color: (ctx) => (ctx.tick.value === 0 ? '#111827' : '#e5e7eb'),
+              lineWidth: (ctx) => (ctx.tick.value === 0 ? 2 : 1),
+            },
+          },
+        },
+      },
+    });
+
     const selectedCountEl = document.querySelector('.selected-count');
 
     function syncCount() {
@@ -321,8 +529,12 @@
     function refreshCharts() {
       accountChart.data.datasets = buildAccountDatasets();
       percentChart.data.datasets = buildPercentDatasets();
+      valeChart.data.datasets = buildValeDatasets();
+      valePercentChart.data.datasets = buildValePercentDatasets();
       accountChart.update();
       percentChart.update();
+      valeChart.update();
+      valePercentChart.update();
     }
 
     const accountInputs = Array.from(document.querySelectorAll('input[name="account_ids"]'));

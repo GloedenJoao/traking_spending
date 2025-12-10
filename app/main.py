@@ -250,11 +250,16 @@ async def dashboard(
 
     rows, _ = simulate(db, base_date, days)
     accounts = db.query(Account).all()
+    vale_labels = {
+        "vale_refeicao": "Vale Refeição",
+        "vale_alimentacao": "Vale Alimentação",
+    }
 
     selected_accounts = set(account_ids) if account_ids else {acc.id for acc in accounts}
 
     labels = [row["date"].strftime("%d/%m") for row in rows]
     account_series = []
+    vale_series = []
 
     for acc in accounts:
         balances = [row["accounts"].get(acc.id, 0.0) for row in rows]
@@ -271,6 +276,25 @@ async def dashboard(
             "balances": balances,
             "changes": changes,
         })
+
+    vale_keys = rows[0]["vales"].keys() if rows else []
+    for key in vale_keys:
+        balances = [row["vales"].get(key, 0.0) for row in rows]
+        latest = balances[-1] if balances else 0.0
+        first = balances[0] if balances else None
+        delta = latest - first if first is not None else None
+        delta_pct = ((latest - first) / abs(first) * 100) if first not in (None, 0) else None
+        vale_series.append(
+            {
+                "id": key,
+                "name": vale_labels.get(key, key.replace("_", " ").title()),
+                "balances": balances,
+                "delta": delta,
+                "delta_pct": delta_pct,
+                "latest": latest,
+                "prev": first,
+            }
+        )
 
     total_values = []
     for row in rows:
@@ -310,6 +334,51 @@ async def dashboard(
     total_delta = total_values[-1] - total_prev if total_prev is not None else None
     total_delta_pct = ((total_values[-1] - total_prev) / abs(total_prev) * 100) if total_prev not in (None, 0) else None
 
+    selected_account_ids = list(selected_accounts)
+
+    total_vale_values = [sum(row["vales"].values()) for row in rows]
+    total_vale_prev = total_vale_values[0] if total_vale_values else None
+    total_vale_final = total_vale_values[-1] if total_vale_values else 0.0
+    total_vale_delta = total_vale_final - total_vale_prev if total_vale_prev is not None else None
+    total_vale_delta_pct = (
+        (total_vale_final - total_vale_prev) / abs(total_vale_prev) * 100
+        if total_vale_prev not in (None, 0)
+        else None
+    )
+
+    total_vale_changes = []
+    total_vale_start_changes = []
+    for current in total_vale_values:
+        if current == 0:
+            total_vale_changes.append(None)
+        else:
+            total_vale_changes.append(((total_vale_final - current) / abs(current)) * 100)
+
+        if total_vale_prev in (None, 0):
+            total_vale_start_changes.append(None)
+        else:
+            total_vale_start_changes.append(((current - total_vale_prev) / abs(total_vale_prev)) * 100)
+
+    vale_summary_cards = [
+        {
+            "name": "Total dos vales",
+            "latest": total_vale_values[-1] if total_vale_values else 0.0,
+            "prev": total_vale_prev,
+            "delta": total_vale_delta,
+            "delta_pct": total_vale_delta_pct,
+        }
+    ]
+    for series in vale_series:
+        vale_summary_cards.append(
+            {
+                "name": series["name"],
+                "latest": series["latest"],
+                "prev": series["prev"],
+                "delta": series["delta"],
+                "delta_pct": series["delta_pct"],
+            }
+        )
+
     chart_payload = {
         "labels": labels,
         "accounts": account_series,
@@ -318,9 +387,15 @@ async def dashboard(
             "changes": total_changes,
             "start_changes": total_start_changes,
         },
+        "vales": {
+            "series": vale_series,
+            "total": {
+                "values": total_vale_values,
+                "changes": total_vale_changes,
+                "start_changes": total_vale_start_changes,
+            },
+        },
     }
-
-    selected_account_ids = list(selected_accounts)
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -337,6 +412,13 @@ async def dashboard(
             "accounts": accounts,
             "selected_account_ids": selected_account_ids,
             "selected_accounts_json": json.dumps(selected_account_ids),
+            "vale_summary_cards": vale_summary_cards,
+            "vale_total_summary": {
+                "latest": total_vale_values[-1] if total_vale_values else 0.0,
+                "prev": total_vale_prev,
+                "delta": total_vale_delta,
+                "delta_pct": total_vale_delta_pct,
+            },
             "start_date": base_date.isoformat(),
             "end_date": end_dt.isoformat(),
             "min_end_date": tomorrow.isoformat(),
