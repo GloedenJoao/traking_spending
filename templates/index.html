@@ -171,6 +171,7 @@
           <input type="number" name="due_day" min="1" max="28" value="{{ card.due_day or '' }}" placeholder="Ex: 12">
           <label>Valor atual da fatura</label>
           <input type="number" step="0.01" name="open_amount" value="{{ card.open_amount or '' }}" placeholder="Ex: 980,00">
+          <p class="muted">O saldo é tratado como dívida (armazenado em valor negativo).</p>
           <button type="submit">Salvar cartão</button>
         </form>
       </div>

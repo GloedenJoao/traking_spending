@@ -1,5 +1,8 @@
 # Instruções para agentes de IA
 
+Atualização: o saldo do cartão de crédito é sempre tratado como dívida (armazenado como valor negativo) para evitar contá-lo como
+disponível.
+
 ## Escopo
 Estas diretrizes cobrem todo o repositório. Mantenha README.md, AGENTS.MD e requirements.txt alinhados ao comportamento atual do aplicativo.
 
