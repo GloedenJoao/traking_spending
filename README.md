@@ -1,16 +1,15 @@
 # Tracking Spending
 
-Aplicação web em Python/FastAPI para acompanhar gastos do mês e simular saldos diários de contas, vales e cartão de crédito em um tema escuro moderno.
+Aplicação web em Python/FastAPI para acompanhar gastos do mês e simular saldos diários de contas, vales e cartão de crédito. O tema escuro facilita a leitura de valores positivos (verde) e negativos/dívidas (vermelho) na projeção diária.
 
-## Tecnologias
-- Python 3.10+
-- FastAPI + Jinja2
-- SQLite com SQLAlchemy
-- Uvicorn para servir a aplicação
-- Tema escuro com CSS leve
+## Stack e organização
+- **Backend**: FastAPI com templates Jinja2 (`app/main.py`), regras financeiras em `app/simulation.py` e utilidades em `app/utils.py`.
+- **Persistência**: SQLite (`app/db.py`) via SQLAlchemy; o arquivo `data.db` é criado automaticamente na raiz.
+- **Front-end**: HTML em `templates/` e estilos/JS em `static/`.
+- **Ambiente**: Python 3.10+ com Uvicorn para desenvolvimento.
 
 ## Como executar
-1. Crie e ative um ambiente virtual (opcional, porém recomendado):
+1. (Opcional) Crie e ative um ambiente virtual:
    ```bash
    python -m venv .venv
    source .venv/bin/activate
@@ -19,21 +18,35 @@ Aplicação web em Python/FastAPI para acompanhar gastos do mês e simular saldo
    ```bash
    pip install -r requirements.txt
    ```
-3. Rode o servidor de desenvolvimento:
+3. Inicialize o servidor (recarrega em mudanças de código):
    ```bash
    uvicorn app.main:app --reload
    ```
-4. Acesse em [http://localhost:8000](http://localhost:8000).
+4. Acesse [http://localhost:8000](http://localhost:8000). O banco SQLite é criado automaticamente na primeira execução com valores iniciais.
 
-## Visão funcional
-- **Página 1 (/**): cadastre e edite saldos da conta corrente e caixinhas de CDB, configure o cartão de crédito (nome, vencimento, fatura aberta armazenada como dívida negativa), defina salário (valor e dia de recebimento) e visualize/ajuste os saldos dos vales refeição e alimentação. Créditos mensais dos vales são aplicados no penúltimo dia útil.
-- **Página 2 (/simulate)**: registre transações futuras (conta/carteira, vales ou fatura do cartão) em datas únicas ou múltiplas/intervalos, agende transferências entre conta corrente e caixinhas com o mesmo recurso de datas, veja a lista consolidada de eventos futuros (transações, salário ajustado para dia útil anterior, créditos de vales e pagamento da fatura) e acompanhe a tabela diária projetada (por padrão 60 dias, ajustável).
+## Fluxo funcional
+- **Página inicial (/**):
+  - Configure saldo da conta corrente e crie/edite caixinhas de CDB.
+  - Ajuste o cartão de crédito (nome, dia de vencimento e fatura aberta). A fatura é sempre armazenada como valor negativo para representar dívida.
+  - Defina salário mensal (valor e dia). O depósito é adiantado para o dia útil anterior se cair em fim de semana.
+  - Consulte e ajuste saldos dos vales refeição e alimentação. Créditos mensais são aplicados no penúltimo dia útil.
 
-## Lógica de simulação
-- Parte dos saldos atuais definidos na Página 1.
-- Processa eventos dia a dia: transações cadastradas, transferências permitidas apenas entre conta corrente e caixinhas, crédito de salário (movido para dia útil anterior se cair em final de semana), crédito fixo dos vales no penúltimo dia útil do mês e pagamento da fatura do cartão na data de vencimento (reduzindo a conta corrente e zerando a fatura aberta).
-- O saldo do cartão de crédito é sempre tratado como devedor (valor negativo) para impedir que apareça como recurso disponível; o pagamento usa o valor absoluto dessa dívida ao debitar a conta corrente.
-- Valores positivos são destacados em verde e negativos/dívidas em vermelho na tabela.
+- **Página de simulação (/simulate)**:
+  - Cadastre transações futuras em datas únicas ou intervalos (contas, vales ou fatura do cartão).
+  - Programe transferências entre conta corrente e caixinhas usando o mesmo esquema de datas.
+  - Visualize a lista consolidada de eventos gerados (salário ajustado, créditos de vales, pagamento da fatura e itens cadastrados).
+  - Veja a projeção diária (60 dias por padrão, ajustável via formulário) com saldos de contas, vales e fatura.
 
-## Atualizações
-Sempre que ajustar regras de negócio ou dependências, atualize este README, o arquivo `AGENTS.MD` com as instruções técnicas e `requirements.txt` com novas bibliotecas. O arquivo SQLite gerado em execução fica ignorado (`.gitignore`) para evitar inclusão de binários no repositório.
+## Regras principais da simulação
+- A simulação parte dos saldos atuais gravados na Página inicial.
+- A cada dia aplica eventos mensais gerados automaticamente:
+  - Salário creditado na conta corrente, movido para o dia útil anterior em caso de fim de semana.
+  - Créditos fixos dos vales refeição (R$ 1236,40) e alimentação (R$ 974,16) no penúltimo dia útil do mês.
+  - Pagamento da fatura do cartão na data de vencimento configurada, debitando a conta corrente pelo valor absoluto da dívida e zerando a fatura.
+- Transações e transferências cadastradas são aplicadas nas datas informadas; transferências são permitidas apenas entre conta corrente e caixinhas.
+- O saldo do cartão é sempre mantido como negativo para impedir que apareça como recurso disponível.
+
+## Manutenção
+- Regras financeiras alteradas devem ser refletidas nesta documentação e em `AGENTS.MD`.
+- Novas dependências devem ser adicionadas em `requirements.txt`.
+- O arquivo SQLite (`data.db`) é artefato de execução e já está listado no `.gitignore`.
