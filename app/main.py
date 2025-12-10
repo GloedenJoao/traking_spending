@@ -284,6 +284,20 @@ async def dashboard(
         first = balances[0] if balances else None
         delta = latest - first if first is not None else None
         delta_pct = ((latest - first) / abs(first) * 100) if first not in (None, 0) else None
+
+        changes = []
+        start_changes = []
+        for current in balances:
+            if current == 0:
+                changes.append(None)
+            else:
+                changes.append(((latest - current) / abs(current)) * 100)
+
+            if first in (None, 0):
+                start_changes.append(None)
+            else:
+                start_changes.append(((current - first) / abs(first)) * 100)
+
         vale_series.append(
             {
                 "id": key,
@@ -293,6 +307,8 @@ async def dashboard(
                 "delta_pct": delta_pct,
                 "latest": latest,
                 "prev": first,
+                "changes": changes,
+                "start_changes": start_changes,
             }
         )
 
