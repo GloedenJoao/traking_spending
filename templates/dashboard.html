@@ -64,7 +64,10 @@
           </div>
         </div>
         <div class="align-end">
-          <button type="submit">Aplicar filtros</button>
+          <div class="chip-row">
+            <button type="button" class="ghost" onclick="window.location='/dashboard'">Remover filtros</button>
+            <button type="submit">Aplicar filtros</button>
+          </div>
         </div>
       </form>
     </div>
@@ -129,7 +132,7 @@
             <p class="eyebrow">Faixas diárias</p>
             <h3>Contas ao longo do tempo</h3>
           </div>
-          <span class="muted">Exibe apenas contas (sem Total)</span>
+          <span class="muted">Inclui contas e Total (sem vales)</span>
         </div>
         <div class="chart-container">
           <canvas id="accountBands"></canvas>
@@ -140,9 +143,9 @@
         <div class="section-title">
           <div>
             <p class="eyebrow">Variação percentual</p>
-            <h3>Contas e Total (sem vales)</h3>
+            <h3>Total (sem vales)</h3>
           </div>
-          <span class="muted">Diferença entre cada dia e o final</span>
+          <span class="muted">Diferença diária vs fim e vs início da simulação</span>
         </div>
         <div class="chart-container">
           <canvas id="percentChanges"></canvas>
@@ -169,22 +172,41 @@
     const percentCtx = document.getElementById('percentChanges').getContext('2d');
 
     function buildAccountDatasets() {
-      return chartData.accounts
-        .filter(acc => selectedAccountIds.has(acc.id))
-        .map((acc, idx) => ({
-          label: acc.name,
-          data: acc.balances,
-          fill: true,
-          borderColor: pickColor(idx),
-          backgroundColor: pickColor(idx) + '33',
-          tension: 0.35,
-        }));
-    }
-
-    function buildPercentDatasets() {
       const datasets = [
         {
           label: 'Total (sem vales)',
+          data: chartData.total.values,
+          borderColor: '#f59e0b',
+          backgroundColor: '#f59e0b33',
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 2,
+          fill: false,
+          stack: 'total',
+        },
+      ];
+
+      chartData.accounts
+        .filter(acc => selectedAccountIds.has(acc.id))
+        .forEach((acc, idx) => {
+          datasets.push({
+            label: acc.name,
+            data: acc.balances,
+            fill: true,
+            borderColor: pickColor(idx),
+            backgroundColor: pickColor(idx) + '33',
+            tension: 0.35,
+            stack: 'accounts',
+          });
+        });
+
+      return datasets;
+    }
+
+    function buildPercentDatasets() {
+      return [
+        {
+          label: 'Total vs fim',
           data: chartData.total.changes,
           borderColor: '#f59e0b',
           backgroundColor: '#f59e0b55',
@@ -192,25 +214,19 @@
           borderWidth: 2,
           pointRadius: 3,
           fill: false,
+        },
+        {
+          label: 'Total vs início',
+          data: chartData.total.start_changes,
+          borderColor: '#6366f1',
+          backgroundColor: '#6366f155',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 3,
+          borderDash: [6, 4],
+          fill: false,
         }
       ];
-
-      chartData.accounts.forEach((acc, idx) => {
-        if (selectedAccountIds.has(acc.id)) {
-          datasets.push({
-            label: acc.name,
-            data: acc.changes,
-            borderColor: pickColor(idx),
-            backgroundColor: pickColor(idx) + '66',
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 3,
-            fill: false,
-          });
-        }
-      });
-
-      return datasets;
     }
 
     const accountChart = new Chart(accountCtx, {
@@ -262,7 +278,7 @@
             callbacks: {
               label: (ctx) => {
                 const value = ctx.parsed?.y ?? 0;
-                return `${ctx.dataset.label}: ${value.toFixed(1)}% vs fim`;
+                return `${ctx.dataset.label}: ${value.toFixed(1)}%`;
               },
             }
           }
@@ -272,7 +288,11 @@
             ticks: {
               callback: (value) => `${value.toFixed(1)}%`,
             },
-            title: { display: true, text: 'Variação para o fim da simulação' },
+            title: { display: true, text: 'Variação percentual (linha base em 0%)' },
+            grid: {
+              color: (ctx) => (ctx.tick.value === 0 ? '#111827' : '#e5e7eb'),
+              lineWidth: (ctx) => (ctx.tick.value === 0 ? 2 : 1),
+            },
           },
         },
       },

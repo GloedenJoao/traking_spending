@@ -276,13 +276,20 @@ async def dashboard(
     for row in rows:
         total_values.append(sum(row["accounts"].values()) + row["credit_card"])
 
+    total_prev = total_values[0] if total_values else None
     total_final = total_values[-1] if total_values else 0.0
     total_changes = []
+    total_start_changes = []
     for current in total_values:
         if current == 0:
             total_changes.append(None)
         else:
             total_changes.append(((total_final - current) / abs(current)) * 100)
+
+        if total_prev in (None, 0):
+            total_start_changes.append(None)
+        else:
+            total_start_changes.append(((current - total_prev) / abs(total_prev)) * 100)
 
     summary_cards = []
     for series in account_series:
@@ -300,14 +307,17 @@ async def dashboard(
             }
         )
 
-    total_prev = total_values[0] if total_values else None
     total_delta = total_values[-1] - total_prev if total_prev is not None else None
     total_delta_pct = ((total_values[-1] - total_prev) / abs(total_prev) * 100) if total_prev not in (None, 0) else None
 
     chart_payload = {
         "labels": labels,
         "accounts": account_series,
-        "total": {"values": total_values, "changes": total_changes},
+        "total": {
+            "values": total_values,
+            "changes": total_changes,
+            "start_changes": total_start_changes,
+        },
     }
 
     selected_account_ids = list(selected_accounts)
