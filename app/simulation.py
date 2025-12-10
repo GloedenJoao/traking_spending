@@ -35,7 +35,8 @@ def ensure_defaults(db_session):
 def sync_default_events(
     db_session, start_date: date, days: int, salary: Salary, credit_card: CreditCard
 ):
-    end_date = start_date + timedelta(days=days)
+    effective_days = max(days, 1)
+    end_date = start_date + timedelta(days=effective_days - 1)
 
     db_session.query(FutureEvent).filter(
         FutureEvent.source == "default",
@@ -117,7 +118,8 @@ def simulate(db_session, start_date: date, days: int):
 
     sync_default_events(db_session, start_date, days, salary, credit_card)
 
-    end_date = start_date + timedelta(days=days)
+    effective_days = max(days, 1)
+    end_date = start_date + timedelta(days=effective_days - 1)
     default_events = (
         db_session.query(FutureEvent)
         .filter(FutureEvent.date >= start_date, FutureEvent.date <= end_date)
@@ -135,7 +137,7 @@ def simulate(db_session, start_date: date, days: int):
     rows = []
     event_log: List[Tuple[date, str, float, str]] = []
 
-    for day in daterange(start_date, days):
+    for day in daterange(start_date, effective_days):
         for evt in events_by_day.get(day, []):
             actual_amount = evt.amount
             if evt.target == "account:corrente":

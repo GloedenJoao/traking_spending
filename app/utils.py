@@ -31,7 +31,7 @@ def penultimate_business_day(year: int, month: int) -> date:
 
 
 def daterange(start: date, days: int):
-    for offset in range(days + 1):
+    for offset in range(days):
         yield start + timedelta(days=offset)
 
 
