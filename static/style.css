@@ -270,3 +270,57 @@ nav a.active { color: var(--text); font-weight: 700; }
   font-weight: 700;
   margin: 8px 0 4px;
 }
+
+.filter-bar {
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+.pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  background: #0b1220;
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.pill input { accent-color: var(--accent); }
+
+.align-end {
+  display: flex;
+  align-items: flex-end;
+}
+
+.insight-card {
+  background: #0d1628;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+}
+
+.delta {
+  font-weight: 600;
+}
+
+.delta.positive { color: var(--positive); }
+.delta.negative { color: var(--negative); }

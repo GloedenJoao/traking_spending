@@ -10,7 +10,7 @@
     <div>
       <p class="eyebrow">Panorama</p>
       <h1>Dashboard</h1>
-      <p class="muted">Espaço reservado para gráficos e indicadores consolidados.</p>
+      <p class="muted">Visualizações diárias com as contas, variações e consolidado (sem vales).</p>
       <div class="hero-actions">
         <a href="/" class="chip ghost">Visão inicial</a>
         <a href="/simulate" class="chip ghost">Simulação e eventos</a>
@@ -18,6 +18,266 @@
       </div>
     </div>
   </header>
-  <div class="container"></div>
+  <div class="container">
+    <div class="card filter-bar">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Filtros</p>
+          <h3>Granularidade diária</h3>
+          <p class="muted">Ajuste a janela e quais contas aparecem nos gráficos.</p>
+        </div>
+        <div class="badge">Dados a partir de {{ start_date }}</div>
+      </div>
+      <form method="get" class="form-row compact">
+        <div>
+          <label for="start_date">Data inicial</label>
+          <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+        </div>
+        <div>
+          <label for="days">Dias simulados</label>
+          <input type="number" id="days" name="days" min="7" max="365" value="{{ days }}">
+        </div>
+        <div>
+          <label>Contas exibidas</label>
+          <div class="pill-group">
+            {% for acc in accounts %}
+              <label class="pill">
+                <input type="checkbox" name="account_ids" value="{{ acc.id }}" {% if acc.id in selected_account_ids %}checked{% endif %}>
+                <span>{{ acc.name }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="align-end">
+          <button type="submit">Aplicar filtros</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel-grid">
+      <div class="card highlight">
+        <p class="eyebrow">Consolidado (sem vales)</p>
+        <div class="section-title">
+          <h2>Total</h2>
+          <div class="chip">Soma das contas + cartão</div>
+        </div>
+        <div class="big-number">{{ total_summary.latest|brl }}</div>
+        <p class="muted">Último dia simulado</p>
+        <div class="delta {{ 'positive' if total_summary.delta is not none and total_summary.delta > 0 else 'negative' if total_summary.delta is not none and total_summary.delta < 0 else '' }}">
+          {% if total_summary.delta is not none %}
+            {{ total_summary.delta|brl }}
+            {% if total_summary.delta_pct is not none %}
+              (<strong>{{ '%.1f' % total_summary.delta_pct }}%</strong> vs dia anterior)
+            {% else %}
+              (sem comparação)
+            {% endif %}
+          {% else %}
+            Sem comparação com o dia anterior
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <p class="eyebrow">Contas</p>
+          <span class="muted">Comparação com o dia anterior</span>
+        </div>
+        <div class="stat-grid">
+          {% for card in summary_cards %}
+            <div class="insight-card">
+              <div class="inline">
+                <span class="dot"></span>
+                <strong>{{ card.name }}</strong>
+              </div>
+              <div class="big-number">{{ card.latest|brl }}</div>
+              <p class="muted">Saldo do último dia</p>
+              <div class="delta {{ 'positive' if card.delta is not none and card.delta > 0 else 'negative' if card.delta is not none and card.delta < 0 else '' }}">
+                {% if card.delta is not none %}
+                  {{ card.delta|brl }}
+                  {% if card.delta_pct is not none %}
+                    (<strong>{{ '%.1f' % card.delta_pct }}%</strong>)
+                  {% endif %}
+                {% else %}
+                  Sem variação registrada
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Faixas diárias</p>
+            <h3>Contas ao longo do tempo</h3>
+          </div>
+          <span class="muted">Exibe apenas contas (sem Total)</span>
+        </div>
+        <canvas id="accountBands" height="220"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Variação percentual</p>
+            <h3>Contas e Total (sem vales)</h3>
+          </div>
+          <span class="muted">Comparação dia contra dia anterior</span>
+        </div>
+        <canvas id="percentChanges" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const chartData = {{ chart_data | safe }};
+    const selectedAccountIds = new Set({{ selected_accounts_json | safe }});
+
+    function formatBRL(value) {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+    }
+
+    function pickColor(index) {
+      const palette = ['#38bdf8', '#a78bfa', '#f472b6', '#fb7185', '#facc15', '#34d399', '#22d3ee', '#94a3b8'];
+      return palette[index % palette.length];
+    }
+
+    const accountCtx = document.getElementById('accountBands').getContext('2d');
+    const percentCtx = document.getElementById('percentChanges').getContext('2d');
+
+    function buildAccountDatasets() {
+      return chartData.accounts
+        .filter(acc => selectedAccountIds.has(acc.id))
+        .map((acc, idx) => ({
+          label: acc.name,
+          data: acc.balances,
+          fill: true,
+          borderColor: pickColor(idx),
+          backgroundColor: pickColor(idx) + '33',
+          tension: 0.35,
+        }));
+    }
+
+    function buildPercentDatasets() {
+      const datasets = [
+        {
+          label: 'Total (sem vales)',
+          data: chartData.total.changes,
+          borderColor: '#f59e0b',
+          backgroundColor: '#f59e0b55',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 3,
+          fill: false,
+        }
+      ];
+
+      chartData.accounts.forEach((acc, idx) => {
+        if (selectedAccountIds.has(acc.id)) {
+          datasets.push({
+            label: acc.name,
+            data: acc.changes,
+            borderColor: pickColor(idx),
+            backgroundColor: pickColor(idx) + '66',
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 3,
+            fill: false,
+          });
+        }
+      });
+
+      return datasets;
+    }
+
+    const accountChart = new Chart(accountCtx, {
+      type: 'line',
+      data: {
+        labels: chartData.labels,
+        datasets: buildAccountDatasets(),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const value = ctx.parsed?.y ?? 0;
+                return `${ctx.dataset.label}: ${formatBRL(value)}`;
+              }
+            }
+          },
+          legend: { position: 'bottom' },
+        },
+        scales: {
+          x: { stacked: true },
+          y: {
+            stacked: true,
+            ticks: {
+              callback: (value) => formatBRL(value),
+            },
+          },
+        },
+      },
+    });
+
+    const percentChart = new Chart(percentCtx, {
+      type: 'line',
+      data: {
+        labels: chartData.labels,
+        datasets: buildPercentDatasets(),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const value = ctx.parsed?.y ?? 0;
+                return `${ctx.dataset.label}: ${value.toFixed(1)}%`;
+              },
+            }
+          }
+        },
+        scales: {
+          y: {
+            ticks: {
+              callback: (value) => `${value.toFixed(1)}%`,
+            },
+            title: { display: true, text: 'Variação vs dia anterior' },
+          },
+        },
+      },
+    });
+
+    document.querySelectorAll('input[name="account_ids"]').forEach((input) => {
+      const id = Number(input.value);
+      if (!selectedAccountIds.size && input.checked) {
+        selectedAccountIds.add(id);
+      }
+
+      input.addEventListener('change', (event) => {
+        if (event.target.checked) {
+          selectedAccountIds.add(id);
+        } else {
+          selectedAccountIds.delete(id);
+        }
+
+        accountChart.data.datasets = buildAccountDatasets();
+        percentChart.data.datasets = buildPercentDatasets();
+        accountChart.update();
+        percentChart.update();
+      });
+    });
+  </script>
 </body>
 </html>
