@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from typing import List
 
 
 def is_business_day(check_date: date) -> bool:
@@ -32,3 +33,22 @@ def penultimate_business_day(year: int, month: int) -> date:
 def daterange(start: date, days: int):
     for offset in range(days + 1):
         yield start + timedelta(days=offset)
+
+
+def expand_date_ranges(date_starts: List[str], date_ends: List[str]) -> List[date]:
+    dates: List[date] = []
+    for index, start_str in enumerate(date_starts):
+        if not start_str:
+            continue
+        start = date.fromisoformat(start_str)
+        end_str = date_ends[index] if index < len(date_ends) and date_ends[index] else None
+        end = date.fromisoformat(end_str) if end_str else start
+        if end < start:
+            start, end = end, start
+
+        current = start
+        while current <= end:
+            if current not in dates:
+                dates.append(current)
+            current += timedelta(days=1)
+    return dates

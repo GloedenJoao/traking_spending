@@ -33,9 +33,25 @@
               <label>Valor</label>
               <input type="number" step="0.01" name="amount" required>
             </div>
-            <div>
-              <label>Data</label>
-              <input type="date" name="date_value" required>
+          </div>
+          <div>
+            <label>Datas ou períodos</label>
+            <div id="txn-date-ranges" class="stacked-rows">
+              <div class="form-row" data-range-row>
+                <div>
+                  <label>Início</label>
+                  <input type="date" name="date_start" required>
+                </div>
+                <div>
+                  <label>Fim (opcional)</label>
+                  <input type="date" name="date_end">
+                </div>
+                <button class="secondary" type="button" onclick="removeRange(this, 'txn-date-ranges')">Remover</button>
+              </div>
+            </div>
+            <div class="form-row compact" style="margin-top:8px;">
+              <button class="secondary" type="button" onclick="addRange('txn-date-ranges')">Adicionar data/período</button>
+              <p class="muted" style="margin:0;">Preencha apenas o início para uma única data ou use início e fim para períodos.</p>
             </div>
           </div>
           <label>Tipo de transação</label>
@@ -77,9 +93,25 @@
               <label>Valor</label>
               <input type="number" step="0.01" name="amount" required>
             </div>
-            <div>
-              <label>Data</label>
-              <input type="date" name="date_value" required>
+          </div>
+          <div>
+            <label>Datas ou períodos</label>
+            <div id="transfer-date-ranges" class="stacked-rows">
+              <div class="form-row" data-range-row>
+                <div>
+                  <label>Início</label>
+                  <input type="date" name="date_start" required>
+                </div>
+                <div>
+                  <label>Fim (opcional)</label>
+                  <input type="date" name="date_end">
+                </div>
+                <button class="secondary" type="button" onclick="removeRange(this, 'transfer-date-ranges')">Remover</button>
+              </div>
+            </div>
+            <div class="form-row compact" style="margin-top:8px;">
+              <button class="secondary" type="button" onclick="addRange('transfer-date-ranges')">Adicionar data/período</button>
+              <p class="muted" style="margin:0;">Permite agendar a mesma transferência em várias datas.</p>
             </div>
           </div>
           <div class="form-row">
@@ -258,6 +290,36 @@
       const simulations = document.getElementById('user-simulations');
       simulations.classList.toggle('hidden');
     }
+
+    function addRange(containerId) {
+      const container = document.getElementById(containerId);
+      const template = container.querySelector('[data-range-row]');
+      const clone = template.cloneNode(true);
+      clone.querySelectorAll('input').forEach((input) => (input.value = ''));
+      container.appendChild(clone);
+      updateRemoveButtons(containerId);
+    }
+
+    function removeRange(button, containerId) {
+      const container = document.getElementById(containerId);
+      if (container.querySelectorAll('[data-range-row]').length === 1) {
+        return;
+      }
+      button.closest('[data-range-row]').remove();
+      updateRemoveButtons(containerId);
+    }
+
+    function updateRemoveButtons(containerId) {
+      const container = document.getElementById(containerId);
+      const rows = container.querySelectorAll('[data-range-row]');
+      rows.forEach((row) => {
+        const button = row.querySelector('button');
+        button.disabled = rows.length === 1;
+      });
+    }
+
+    updateRemoveButtons('txn-date-ranges');
+    updateRemoveButtons('transfer-date-ranges');
   </script>
 </body>
 </html>
