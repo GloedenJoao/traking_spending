@@ -137,6 +137,67 @@
         </div>
       </div>
 
+      <div class="card">
+        <div class="section-title">
+          <h3>Simulações lançadas</h3>
+          <span class="badge">Remova itens criados aqui</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Tipo</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for txn in transactions %}
+              <tr>
+                <td>{{ txn.date }}</td>
+                <td>{{ txn.description }}</td>
+                <td class="{{ 'positive' if txn.amount >=0 else 'negative' }}">{{ txn.amount|brl }}</td>
+                <td>
+                  {% if txn.target_type == 'account' %}
+                    Conta: {{ account_lookup.get(txn.account_id, 'Conta corrente/caixinha') }}
+                  {% elif txn.target_type == 'credit_card' %}
+                    Cartão de crédito
+                  {% elif txn.target_type == 'vale_refeicao' %}
+                    Vale Refeição
+                  {% else %}
+                    Vale Alimentação
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="post" action="/transactions/{{ txn.id }}/delete">
+                    <button class="secondary" type="submit">Remover</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+              {% for mov in transfers %}
+              <tr>
+                <td>{{ mov.date }}</td>
+                <td>{{ mov.description }}</td>
+                <td class="negative">{{ (-mov.amount)|brl }}</td>
+                <td>Transferência: {{ account_lookup.get(mov.from_account_id, 'Origem') }} → {{ account_lookup.get(mov.to_account_id, 'Destino') }}</td>
+                <td>
+                  <form method="post" action="/transfers/{{ mov.id }}/delete">
+                    <button class="secondary" type="submit">Remover</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if transactions|length == 0 and transfers|length == 0 %}
+              <tr><td colspan="5" class="muted">Nenhuma simulação lançada ainda.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     <div class="card">
       <div class="section-title">
         <h3>Tabela diária</h3>

@@ -104,6 +104,9 @@ async def show_simulation(request: Request, days: int = 60, db: Session = Depend
     rows, event_log = simulate(db, today, days)
     accounts = db.query(Account).all()
     vales = db.query(ValeBalance).all()
+    transactions = db.query(Transaction).order_by(Transaction.date, Transaction.id).all()
+    transfers = db.query(Transfer).order_by(Transfer.date, Transfer.id).all()
+    account_lookup = {acc.id: acc.name for acc in accounts}
     return templates.TemplateResponse(
         "simulate.html",
         {
@@ -112,6 +115,9 @@ async def show_simulation(request: Request, days: int = 60, db: Session = Depend
             "days": days,
             "accounts": accounts,
             "vales": vales,
+            "transactions": transactions,
+            "transfers": transfers,
+            "account_lookup": account_lookup,
             "event_log": sorted(event_log, key=lambda e: e[0]),
         },
     )
@@ -141,6 +147,15 @@ async def add_transaction(
     return RedirectResponse("/simulate", status_code=303)
 
 
+@app.post("/transactions/{transaction_id}/delete")
+async def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
+    txn = db.query(Transaction).filter_by(id=transaction_id).first()
+    if txn:
+        db.delete(txn)
+        db.commit()
+    return RedirectResponse("/simulate", status_code=303)
+
+
 @app.post("/transfers")
 async def add_transfer(
     description: str = Form(...),
@@ -162,6 +177,15 @@ async def add_transfer(
     )
     db.add(transfer)
     db.commit()
+    return RedirectResponse("/simulate", status_code=303)
+
+
+@app.post("/transfers/{transfer_id}/delete")
+async def delete_transfer(transfer_id: int, db: Session = Depends(get_db)):
+    transfer = db.query(Transfer).filter_by(id=transfer_id).first()
+    if transfer:
+        db.delete(transfer)
+        db.commit()
     return RedirectResponse("/simulate", status_code=303)
 
 
