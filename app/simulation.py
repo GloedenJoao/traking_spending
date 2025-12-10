@@ -11,8 +11,11 @@ VALE_ALIMENTACAO_VALUE = 974.16
 def ensure_defaults(db_session):
     if not db_session.query(Account).filter_by(type="corrente").first():
         db_session.add(Account(name="Conta Corrente", type="corrente", balance=0.0))
-    if not db_session.query(CreditCard).first():
+    card = db_session.query(CreditCard).first()
+    if not card:
         db_session.add(CreditCard(name="Cartão de Crédito", due_day=10, open_amount=0.0))
+    elif card.open_amount > 0:
+        card.open_amount = -abs(card.open_amount)
     if not db_session.query(Salary).first():
         db_session.add(Salary(amount=0.0, payday=5))
     for vale_type in ["vale_refeicao", "vale_alimentacao"]:
@@ -73,7 +76,7 @@ def simulate(db_session, start_date: date, days: int):
         "vale_refeicao": vale_ref.balance if vale_ref else 0.0,
         "vale_alimentacao": vale_alim.balance if vale_alim else 0.0,
     }
-    card_balance = credit_card.open_amount if credit_card else 0.0
+    card_balance = -abs(credit_card.open_amount) if credit_card else 0.0
 
     monthly_events = build_monthly_events(start_date, days, salary, credit_card)
 
@@ -96,7 +99,7 @@ def simulate(db_session, start_date: date, days: int):
             elif target == "credit_card:pay":
                 corrente = next((acc for acc in accounts if acc.type == "corrente"), None)
                 if corrente and card_balance != 0:
-                    payment = card_balance
+                    payment = abs(card_balance)
                     account_balances[corrente.id] -= payment
                     actual_amount = -payment
                     card_balance = 0.0

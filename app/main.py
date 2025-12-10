@@ -84,7 +84,7 @@ async def update_card(
     card = db.query(CreditCard).first()
     card.name = name
     card.due_day = due_day
-    card.open_amount = open_amount
+    card.open_amount = -abs(open_amount)
     db.commit()
     return RedirectResponse("/", status_code=303)
 
