@@ -14,6 +14,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Tracking Spending")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+templates.env.filters["brl"] = lambda value: "R$ " + f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def get_db():

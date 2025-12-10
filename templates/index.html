@@ -2,30 +2,56 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Saldo Atual</title>
+  <title>Painel inicial</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header>
+  <header class="hero">
     <div>
-      <h1>Acompanhamento de Gastos</h1>
-      <p class="muted">Página 1 – cadastre saldos e dados fixos</p>
+      <p class="eyebrow">Painel financeiro</p>
+      <h1>Crie seu ponto de partida com uma home moderna</h1>
+      <p class="muted">Cadastre os dados fixos e veja um resumo rápido antes de simular o futuro.</p>
+      <div class="hero-actions">
+        <a href="/" class="chip active">Visão inicial</a>
+        <a href="/simulate" class="chip">Simulação e eventos</a>
+      </div>
     </div>
-    <nav>
-      <a href="/" class="active">Página 1</a>
-      <a href="/simulate">Página 2</a>
-    </nav>
+    <div class="hero-card">
+      <p class="muted">Resumo instantâneo</p>
+      {% set vale_ref = (vales | selectattr('vale_type', 'equalto', 'vale_refeicao') | list | first) %}
+      {% set vale_alim = (vales | selectattr('vale_type', 'equalto', 'vale_alimentacao') | list | first) %}
+      <div class="stat-grid">
+        <div>
+          <p class="muted">Conta corrente</p>
+          <h2>{{ (corrente.balance if corrente else 0)|brl }}</h2>
+        </div>
+        <div>
+          <p class="muted">Fatura aberta</p>
+          <h2 class="{{ 'positive' if card.open_amount >=0 else 'negative' }}">{{ card.open_amount|brl }}</h2>
+        </div>
+        <div>
+          <p class="muted">Vale Refeição</p>
+          <h2>{{ (vale_ref.balance if vale_ref else 0)|brl }}</h2>
+        </div>
+        <div>
+          <p class="muted">Vale Alimentação</p>
+          <h2>{{ (vale_alim.balance if vale_alim else 0)|brl }}</h2>
+        </div>
+      </div>
+      <span class="badge">Atualize os valores para começar</span>
+    </div>
   </header>
+
   <div class="container">
-    <div class="grid two">
+    <section class="grid two">
       <div class="card">
         <div class="section-title">
-          <h3>Conta Corrente</h3>
+          <h3>Conta corrente</h3>
           <span class="badge">Saldo atual</span>
         </div>
         <form method="post" action="/account/corrente" class="grid">
           <label>Saldo</label>
-          <input type="number" step="0.01" name="balance" value="{{ corrente.balance if corrente else 0 }}" required>
+          <input type="number" step="0.01" name="balance" value="{{ corrente.balance if corrente else '' }}" placeholder="Ex: 2500,00" required>
           <button type="submit">Salvar conta corrente</button>
         </form>
       </div>
@@ -39,7 +65,7 @@
           <label>Nome</label>
           <input type="text" name="name" placeholder="Ex: Viagem" required>
           <label>Saldo</label>
-          <input type="number" step="0.01" name="balance" value="0">
+          <input type="number" step="0.01" name="balance" placeholder="Ex: 300,00">
           <button type="submit">Adicionar caixinha</button>
         </form>
         {% if caixinhas %}
@@ -61,21 +87,21 @@
         {% endfor %}
         {% endif %}
       </div>
-    </div>
+    </section>
 
-    <div class="grid two">
+    <section class="grid two">
       <div class="card">
         <div class="section-title">
-          <h3>Cartão de Crédito</h3>
+          <h3>Cartão de crédito</h3>
           <span class="badge">Fatura aberta</span>
         </div>
         <form method="post" action="/credit-card" class="grid">
           <label>Nome</label>
-          <input type="text" name="name" value="{{ card.name }}" placeholder="Cartão de Crédito">
+          <input type="text" name="name" value="{{ card.name or '' }}" placeholder="Cartão principal">
           <label>Dia de vencimento</label>
-          <input type="number" name="due_day" min="1" max="28" value="{{ card.due_day }}">
+          <input type="number" name="due_day" min="1" max="28" value="{{ card.due_day or '' }}" placeholder="Ex: 12">
           <label>Valor atual da fatura</label>
-          <input type="number" step="0.01" name="open_amount" value="{{ card.open_amount }}">
+          <input type="number" step="0.01" name="open_amount" value="{{ card.open_amount or '' }}" placeholder="Ex: 980,00">
           <button type="submit">Salvar cartão</button>
         </form>
       </div>
@@ -87,16 +113,16 @@
         </div>
         <form method="post" action="/salary" class="grid">
           <label>Valor</label>
-          <input type="number" step="0.01" name="amount" value="{{ salary.amount }}" required>
+          <input type="number" step="0.01" name="amount" value="{{ salary.amount or '' }}" placeholder="Ex: 7500,00" required>
           <label>Dia do mês</label>
-          <input type="number" name="payday" min="1" max="28" value="{{ salary.payday }}" required>
+          <input type="number" name="payday" min="1" max="28" value="{{ salary.payday or '' }}" placeholder="Ex: 5" required>
           <p class="muted">Se cair em final de semana, usamos o dia útil anterior.</p>
           <button type="submit">Salvar salário</button>
         </form>
       </div>
-    </div>
+    </section>
 
-    <div class="card">
+    <section class="card">
       <div class="section-title">
         <h3>Vales</h3>
         <span class="badge">Crédito no penúltimo dia útil</span>
@@ -106,12 +132,12 @@
         {% for vale in vales %}
         <form method="post" action="/vales/{{ vale.vale_type }}" class="grid">
           <label>{{ 'Vale Refeição' if vale.vale_type == 'vale_refeicao' else 'Vale Alimentação' }}</label>
-          <input type="number" step="0.01" name="balance" value="{{ vale.balance }}">
+          <input type="number" step="0.01" name="balance" value="{{ vale.balance }}" placeholder="Ex: 500,00">
           <button type="submit">Atualizar saldo</button>
         </form>
         {% endfor %}
       </div>
-    </div>
+    </section>
   </div>
 </body>
 </html>
