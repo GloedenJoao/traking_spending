@@ -71,3 +71,14 @@ class Transfer(Base):
 
     from_account = relationship("Account", foreign_keys=[from_account_id], back_populates="outgoing_transfers")
     to_account = relationship("Account", foreign_keys=[to_account_id], back_populates="incoming_transfers")
+
+
+class FutureEvent(Base):
+    __tablename__ = "future_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date, nullable=False)
+    description = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    target = Column(String, nullable=False)
+    source = Column(String, default="default")
