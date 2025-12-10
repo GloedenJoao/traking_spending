@@ -190,6 +190,15 @@ nav a.active { color: var(--text); font-weight: 700; }
   align-items: center;
 }
 
+.stacked-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.stacked-rows .form-row {
+  align-items: end;
+}
+
 .inline {
   display: flex;
   align-items: center;

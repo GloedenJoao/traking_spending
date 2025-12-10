@@ -27,7 +27,7 @@ Aplicação web em Python/FastAPI para acompanhar gastos do mês e simular saldo
 
 ## Visão funcional
 - **Página 1 (/**): cadastre e edite saldos da conta corrente e caixinhas de CDB, configure o cartão de crédito (nome, vencimento, fatura aberta armazenada como dívida negativa), defina salário (valor e dia de recebimento) e visualize/ajuste os saldos dos vales refeição e alimentação. Créditos mensais dos vales são aplicados no penúltimo dia útil.
-- **Página 2 (/simulate)**: registre transações futuras (conta/carteira, vales ou fatura do cartão), agende transferências entre conta corrente e caixinhas, veja a lista consolidada de eventos futuros (transações, salário ajustado para dia útil anterior, créditos de vales e pagamento da fatura) e acompanhe a tabela diária projetada (por padrão 60 dias, ajustável).
+- **Página 2 (/simulate)**: registre transações futuras (conta/carteira, vales ou fatura do cartão) em datas únicas ou múltiplas/intervalos, agende transferências entre conta corrente e caixinhas com o mesmo recurso de datas, veja a lista consolidada de eventos futuros (transações, salário ajustado para dia útil anterior, créditos de vales e pagamento da fatura) e acompanhe a tabela diária projetada (por padrão 60 dias, ajustável).
 
 ## Lógica de simulação
 - Parte dos saldos atuais definidos na Página 1.

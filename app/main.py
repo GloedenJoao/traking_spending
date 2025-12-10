@@ -1,5 +1,7 @@
 from datetime import date
-from fastapi import FastAPI, Depends, Form, Request
+from typing import List
+
+from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -8,6 +10,7 @@ from sqlalchemy.orm import Session
 from .db import Base, engine, SessionLocal
 from .models import Account, CreditCard, Salary, Transaction, Transfer, ValeBalance
 from .simulation import ensure_defaults, simulate
+from .utils import expand_date_ranges
 
 Base.metadata.create_all(bind=engine)
 
@@ -127,22 +130,24 @@ async def show_simulation(request: Request, days: int = 60, db: Session = Depend
 async def add_transaction(
     description: str = Form(...),
     amount: float = Form(...),
-    date_value: str = Form(...),
+    date_start: List[str] = Form(...),
+    date_end: List[str] = Form(None),
     transaction_type: str = Form("debit"),
     target_type: str = Form(...),
     account_id: int = Form(None),
     db: Session = Depends(get_db),
 ):
-    txn_date = date.fromisoformat(date_value)
     signed_amount = amount if transaction_type == "credit" else -amount
-    txn = Transaction(
-        description=description,
-        amount=signed_amount,
-        date=txn_date,
-        target_type=target_type,
-        account_id=account_id if target_type == "account" else None,
-    )
-    db.add(txn)
+    dates = expand_date_ranges(date_start, date_end or [])
+    for txn_date in dates:
+        txn = Transaction(
+            description=description,
+            amount=signed_amount,
+            date=txn_date,
+            target_type=target_type,
+            account_id=account_id if target_type == "account" else None,
+        )
+        db.add(txn)
     db.commit()
     return RedirectResponse("/simulate", status_code=303)
 
@@ -160,22 +165,25 @@ async def delete_transaction(transaction_id: int, db: Session = Depends(get_db))
 async def add_transfer(
     description: str = Form(...),
     amount: float = Form(...),
-    date_value: str = Form(...),
+    date_start: List[str] = Form(...),
+    date_end: List[str] = Form(None),
     from_account_id: int = Form(...),
     to_account_id: int = Form(...),
     db: Session = Depends(get_db),
 ):
-    transfer_date = date.fromisoformat(date_value)
     if from_account_id == to_account_id:
         return RedirectResponse("/simulate", status_code=303)
-    transfer = Transfer(
-        description=description,
-        amount=amount,
-        date=transfer_date,
-        from_account_id=from_account_id,
-        to_account_id=to_account_id,
-    )
-    db.add(transfer)
+
+    dates = expand_date_ranges(date_start, date_end or [])
+    for transfer_date in dates:
+        transfer = Transfer(
+            description=description,
+            amount=amount,
+            date=transfer_date,
+            from_account_id=from_account_id,
+            to_account_id=to_account_id,
+        )
+        db.add(transfer)
     db.commit()
     return RedirectResponse("/simulate", status_code=303)
 
