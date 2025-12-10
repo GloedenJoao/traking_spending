@@ -71,3 +71,14 @@ class Transfer(Base):
 
     from_account = relationship("Account", foreign_keys=[from_account_id], back_populates="outgoing_transfers")
     to_account = relationship("Account", foreign_keys=[to_account_id], back_populates="incoming_transfers")
+
+
+class SimulationEvent(Base):
+    __tablename__ = "simulation_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date, nullable=False)
+    description = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    tag = Column(String, nullable=False)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
