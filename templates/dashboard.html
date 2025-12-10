@@ -145,7 +145,7 @@
             <p class="eyebrow">Variação percentual</p>
             <h3>Total (sem vales)</h3>
           </div>
-          <span class="muted">Diferença entre cada dia e o final</span>
+          <span class="muted">Diferença diária vs fim e vs início da simulação</span>
         </div>
         <div class="chart-container">
           <canvas id="percentChanges"></canvas>
@@ -206,13 +206,24 @@
     function buildPercentDatasets() {
       return [
         {
-          label: 'Total (sem vales)',
+          label: 'Total vs fim',
           data: chartData.total.changes,
           borderColor: '#f59e0b',
           backgroundColor: '#f59e0b55',
           tension: 0.3,
           borderWidth: 2,
           pointRadius: 3,
+          fill: false,
+        },
+        {
+          label: 'Total vs início',
+          data: chartData.total.start_changes,
+          borderColor: '#6366f1',
+          backgroundColor: '#6366f155',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 3,
+          borderDash: [6, 4],
           fill: false,
         }
       ];
@@ -267,7 +278,7 @@
             callbacks: {
               label: (ctx) => {
                 const value = ctx.parsed?.y ?? 0;
-                return `${ctx.dataset.label}: ${value.toFixed(1)}% vs fim`;
+                return `${ctx.dataset.label}: ${value.toFixed(1)}%`;
               },
             }
           }
@@ -277,7 +288,11 @@
             ticks: {
               callback: (value) => `${value.toFixed(1)}%`,
             },
-            title: { display: true, text: 'Variação para o fim da simulação' },
+            title: { display: true, text: 'Variação percentual (linha base em 0%)' },
+            grid: {
+              color: (ctx) => (ctx.tick.value === 0 ? '#111827' : '#e5e7eb'),
+              lineWidth: (ctx) => (ctx.tick.value === 0 ? 2 : 1),
+            },
           },
         },
       },
