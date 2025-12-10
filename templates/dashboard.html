@@ -125,6 +125,59 @@
       </div>
     </div>
 
+    <div class="panel-grid">
+      <div class="card highlight">
+        <p class="eyebrow">Vales</p>
+        <div class="section-title">
+          <h2>Total</h2>
+          <div class="chip">Refeição + Alimentação</div>
+        </div>
+        <div class="big-number">{{ vale_total_summary.latest|brl }}</div>
+        <p class="muted">Último dia simulado</p>
+        <div class="delta {{ 'positive' if vale_total_summary.delta is not none and vale_total_summary.delta > 0 else 'negative' if vale_total_summary.delta is not none and vale_total_summary.delta < 0 else '' }}">
+          {% if vale_total_summary.delta is not none %}
+            {{ vale_total_summary.delta|brl }}
+            {% if vale_total_summary.delta_pct is not none %}
+              (<strong>{{ '%.1f' % vale_total_summary.delta_pct }}%</strong> vs início)
+            {% else %}
+              (sem comparação)
+            {% endif %}
+          {% else %}
+            Sem comparação com o dia anterior
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <p class="eyebrow">Vales</p>
+          <span class="muted">Variação do início ao fim da simulação</span>
+        </div>
+        <div class="stat-grid">
+          {% for card in vale_summary_cards %}
+            <div class="insight-card">
+              <div class="inline">
+                <span class="dot"></span>
+                <strong>{{ card.name }}</strong>
+              </div>
+              <div class="big-number">{{ card.latest|brl }}</div>
+              <p class="muted">Saldo do último dia</p>
+              <div class="delta {{ 'positive' if card.delta is not none and card.delta > 0 else 'negative' if card.delta is not none and card.delta < 0 else '' }}">
+                {% if card.delta is not none %}
+                  {{ card.delta|brl }}
+                  {% if card.delta_pct is not none %}
+                    (<strong>{{ '%.1f' % card.delta_pct }}%</strong>)
+                  {% endif %}
+                {% else %}
+                  Sem variação registrada
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
     <div class="grid charts">
       <div class="card">
         <div class="section-title">
