@@ -413,6 +413,8 @@ async def dashboard(
     total_final = total_values[-1] if total_values else 0.0
     total_changes = []
     total_start_changes = []
+    total_daily_changes = []
+    prev_total_value = None
     for current in total_values:
         if current == 0:
             total_changes.append(None)
@@ -423,6 +425,12 @@ async def dashboard(
             total_start_changes.append(None)
         else:
             total_start_changes.append(((current - total_prev) / abs(total_prev)) * 100)
+
+        if prev_total_value in (None, 0):
+            total_daily_changes.append(None)
+        else:
+            total_daily_changes.append(((current - prev_total_value) / abs(prev_total_value)) * 100)
+        prev_total_value = current
 
     summary_cards = []
     for series in account_series:
@@ -457,6 +465,8 @@ async def dashboard(
 
     total_vale_changes = []
     total_vale_start_changes = []
+    total_vale_daily_changes = []
+    prev_vale_value = None
     for current in total_vale_values:
         if current == 0:
             total_vale_changes.append(None)
@@ -467,6 +477,12 @@ async def dashboard(
             total_vale_start_changes.append(None)
         else:
             total_vale_start_changes.append(((current - total_vale_prev) / abs(total_vale_prev)) * 100)
+
+        if prev_vale_value in (None, 0):
+            total_vale_daily_changes.append(None)
+        else:
+            total_vale_daily_changes.append(((current - prev_vale_value) / abs(prev_vale_value)) * 100)
+        prev_vale_value = current
 
     vale_summary_cards = [
         {
@@ -495,6 +511,7 @@ async def dashboard(
             "values": total_values,
             "changes": total_changes,
             "start_changes": total_start_changes,
+            "daily_changes": total_daily_changes,
         },
         "vales": {
             "series": vale_series,
@@ -502,6 +519,7 @@ async def dashboard(
                 "values": total_vale_values,
                 "changes": total_vale_changes,
                 "start_changes": total_vale_start_changes,
+                "daily_changes": total_vale_daily_changes,
             },
         },
     }
