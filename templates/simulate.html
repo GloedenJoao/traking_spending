@@ -176,12 +176,17 @@
           <h3>Simulações lançadas</h3>
           <span class="badge">Remova itens criados aqui</span>
         </div>
-        <button class="reveal-btn" type="button" onclick="toggleSimulations()">Mostrar simulações</button>
+        <div class="form-row compact" style="justify-content: space-between; align-items: center;">
+          <button class="reveal-btn" type="button" onclick="toggleSimulations()">Mostrar simulações</button>
+          <form method="post" action="/simulations/clear" onsubmit="return confirm('Remover todas as simulações?');">
+            <button class="secondary" type="submit">Remover todas</button>
+          </form>
+        </div>
         <div id="user-simulations" class="collapsible hidden" style="overflow-x:auto;">
           <table class="table">
             <thead>
               <tr>
-                <th>Data</th>
+                <th>Datas</th>
                 <th>Descrição</th>
                 <th>Valor</th>
                 <th>Tipo</th>
@@ -189,43 +194,57 @@
               </tr>
             </thead>
             <tbody>
-              {% for txn in transactions %}
+              {% for group in simulation_groups %}
               <tr>
-                <td>{{ txn.date }}</td>
-                <td>{{ txn.description }}</td>
-                <td class="{{ 'positive' if txn.amount >=0 else 'negative' }}">{{ txn.amount|brl }}</td>
                 <td>
-                  {% if txn.target_type == 'account' %}
-                    Conta: {{ account_lookup.get(txn.account_id, 'Conta corrente/caixinha') }}
-                  {% elif txn.target_type == 'credit_card' %}
-                    Cartão de crédito
-                  {% elif txn.target_type == 'vale_refeicao' %}
-                    Vale Refeição
+                  <div><strong>{{ group.first_date }}</strong></div>
+                  {% if group.date_count > 1 %}
+                  <div class="muted" style="font-size: 12px;">+ {{ group.date_count - 1 }} outra(s): {{ group.dates[1:]|join(', ') }}</div>
+                  {% endif %}
+                </td>
+                <td>{{ group.description }}</td>
+                <td class="{{ 'positive' if group.kind == 'transaction' and group.amount >=0 else 'negative' }}">
+                  {% if group.kind == 'transaction' %}
+                    {{ group.amount|brl }}
                   {% else %}
-                    Vale Alimentação
+                    {{ (-group.amount)|brl }}
                   {% endif %}
                 </td>
                 <td>
-                  <form method="post" action="/transactions/{{ txn.id }}/delete">
-                    <button class="secondary" type="submit">Remover</button>
-                  </form>
+                  {% if group.kind == 'transaction' %}
+                    {% if group.target_type == 'account' %}
+                      Conta: {{ account_lookup.get(group.account_id, 'Conta corrente/caixinha') }}
+                    {% elif group.target_type == 'credit_card' %}
+                      Cartão de crédito
+                    {% elif group.target_type == 'vale_refeicao' %}
+                      Vale Refeição
+                    {% else %}
+                      Vale Alimentação
+                    {% endif %}
+                  {% else %}
+                    Transferência: {{ account_lookup.get(group.from_account_id, 'Origem') }} → {{ account_lookup.get(group.to_account_id, 'Destino') }}
+                  {% endif %}
                 </td>
-              </tr>
-              {% endfor %}
-              {% for mov in transfers %}
-              <tr>
-                <td>{{ mov.date }}</td>
-                <td>{{ mov.description }}</td>
-                <td class="negative">{{ (-mov.amount)|brl }}</td>
-                <td>Transferência: {{ account_lookup.get(mov.from_account_id, 'Origem') }} → {{ account_lookup.get(mov.to_account_id, 'Destino') }}</td>
                 <td>
-                  <form method="post" action="/transfers/{{ mov.id }}/delete">
-                    <button class="secondary" type="submit">Remover</button>
+                  {% if group.kind == 'transaction' %}
+                  <form method="post" action="/transactions/bulk-delete">
+                    {% for txn_id in group.ids %}
+                    <input type="hidden" name="transaction_ids" value="{{ txn_id }}">
+                    {% endfor %}
+                    <button class="secondary" type="submit">Remover {{ 'todas' if group.date_count > 1 else 'item' }}</button>
                   </form>
+                  {% else %}
+                  <form method="post" action="/transfers/bulk-delete">
+                    {% for transfer_id in group.ids %}
+                    <input type="hidden" name="transfer_ids" value="{{ transfer_id }}">
+                    {% endfor %}
+                    <button class="secondary" type="submit">Remover {{ 'todas' if group.date_count > 1 else 'item' }}</button>
+                  </form>
+                  {% endif %}
                 </td>
               </tr>
               {% endfor %}
-              {% if transactions|length == 0 and transfers|length == 0 %}
+              {% if simulation_groups|length == 0 %}
               <tr><td colspan="5" class="muted">Nenhuma simulação lançada ainda.</td></tr>
               {% endif %}
             </tbody>

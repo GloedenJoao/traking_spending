@@ -111,6 +111,70 @@ async def show_simulation(request: Request, days: int = 60, db: Session = Depend
     transactions = db.query(Transaction).order_by(Transaction.date, Transaction.id).all()
     transfers = db.query(Transfer).order_by(Transfer.date, Transfer.id).all()
     account_lookup = {acc.id: acc.name for acc in accounts}
+
+    simulation_groups = []
+
+    for txn in transactions:
+        key = (
+            "transaction",
+            txn.description,
+            txn.amount,
+            txn.target_type,
+            txn.account_id,
+        )
+        simulation_groups.append(
+            {
+                "kind": "transaction",
+                "key": key,
+                "description": txn.description,
+                "amount": txn.amount,
+                "target_type": txn.target_type,
+                "account_id": txn.account_id,
+                "dates": [txn.date],
+                "ids": [txn.id],
+            }
+        )
+
+    for mov in transfers:
+        key = (
+            "transfer",
+            mov.description,
+            mov.amount,
+            mov.from_account_id,
+            mov.to_account_id,
+        )
+        simulation_groups.append(
+            {
+                "kind": "transfer",
+                "key": key,
+                "description": mov.description,
+                "amount": mov.amount,
+                "from_account_id": mov.from_account_id,
+                "to_account_id": mov.to_account_id,
+                "dates": [mov.date],
+                "ids": [mov.id],
+            }
+        )
+
+    merged_groups = {}
+    for group in simulation_groups:
+        key = group["key"]
+        if key not in merged_groups:
+            merged_groups[key] = group
+        else:
+            merged_groups[key]["dates"].extend(group["dates"])
+            merged_groups[key]["ids"].extend(group["ids"])
+
+    ordered_groups = []
+    for group in merged_groups.values():
+        group["dates"].sort()
+        group["ids"].sort()
+        group["first_date"] = group["dates"][0]
+        group["date_count"] = len(group["dates"])
+        ordered_groups.append(group)
+
+    ordered_groups.sort(key=lambda item: (item["first_date"], item["description"]))
+
     return templates.TemplateResponse(
         "simulate.html",
         {
@@ -121,6 +185,7 @@ async def show_simulation(request: Request, days: int = 60, db: Session = Depend
             "vales": vales,
             "transactions": transactions,
             "transfers": transfers,
+            "simulation_groups": ordered_groups,
             "account_lookup": account_lookup,
             "event_log": sorted(event_log, key=lambda e: e[0]),
         },
@@ -162,6 +227,16 @@ async def delete_transaction(transaction_id: int, db: Session = Depends(get_db))
     return RedirectResponse("/simulate", status_code=303)
 
 
+@app.post("/transactions/bulk-delete")
+async def bulk_delete_transactions(transaction_ids: List[int] = Form(...), db: Session = Depends(get_db)):
+    for transaction_id in transaction_ids:
+        txn = db.query(Transaction).filter_by(id=transaction_id).first()
+        if txn:
+            db.delete(txn)
+    db.commit()
+    return RedirectResponse("/simulate", status_code=303)
+
+
 @app.post("/transfers")
 async def add_transfer(
     description: str = Form(...),
@@ -195,6 +270,24 @@ async def delete_transfer(transfer_id: int, db: Session = Depends(get_db)):
     if transfer:
         db.delete(transfer)
         db.commit()
+    return RedirectResponse("/simulate", status_code=303)
+
+
+@app.post("/transfers/bulk-delete")
+async def bulk_delete_transfers(transfer_ids: List[int] = Form(...), db: Session = Depends(get_db)):
+    for transfer_id in transfer_ids:
+        transfer = db.query(Transfer).filter_by(id=transfer_id).first()
+        if transfer:
+            db.delete(transfer)
+    db.commit()
+    return RedirectResponse("/simulate", status_code=303)
+
+
+@app.post("/simulations/clear")
+async def clear_simulations(db: Session = Depends(get_db)):
+    db.query(Transaction).delete()
+    db.query(Transfer).delete()
+    db.commit()
     return RedirectResponse("/simulate", status_code=303)
 
 
