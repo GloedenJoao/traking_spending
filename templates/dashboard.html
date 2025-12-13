@@ -287,6 +287,16 @@
     function buildPercentDatasets() {
       return [
         {
+          label: 'Total dia a dia',
+          data: chartData.total.daily_changes,
+          borderColor: '#f97316',
+          backgroundColor: '#f9731655',
+          tension: 0.25,
+          borderWidth: 2,
+          pointRadius: 3,
+          fill: false,
+        },
+        {
           label: 'Total vs início',
           data: chartData.total.start_changes,
           borderColor: '#6366f1',
@@ -330,6 +340,16 @@
 
     function buildValePercentDatasets() {
       const datasets = [
+        {
+          label: 'Total vales dia a dia',
+          data: chartData.vales.total.daily_changes,
+          borderColor: '#14b8a6',
+          backgroundColor: '#14b8a655',
+          tension: 0.25,
+          borderWidth: 2,
+          pointRadius: 3,
+          fill: false,
+        },
         {
           label: 'Vales vs início',
           data: chartData.vales.total.start_changes,
